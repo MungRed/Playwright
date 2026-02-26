@@ -11,7 +11,7 @@ class TextAdventureGame:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("文字冒险游戏")
-        self.root.geometry("900x600")
+        self.root.geometry("1280x720")
         self.root.configure(bg=BG_MENU)
         self.root.resizable(False, False)
         self._frame: tk.Frame | None = None
