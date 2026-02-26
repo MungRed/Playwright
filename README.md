@@ -8,6 +8,8 @@
 
 - **主菜单**：自动扫描 `scripts/` 目录，动态展示所有可用游戏
 - **逐段叙事**：按段落推进剧情，按空格键翻页
+- **剧情分支**：段落可设置多个选项，点击或按数字键进入不同剧情线
+- **历史回退**：按 BackSpace 键返回上一段，支持自由探索所有分支
 - **文字演出效果**：支持四种内置效果
   - `fadein` — 文字渐显
   - `typewriter` — 打字机逐字输出
@@ -36,9 +38,11 @@ python main.py
 
 ## 脚本格式
 
-游戏脚本为 JSON 文件，放置于 `scripts/` 目录下，引擎启动时自动识别。
+游戏脚本为 JSON 文件，放置于 `scripts/` 目录下，引擎启动时自动识别。支持两种格式：
 
-### 基本结构
+### 线性格式（数组）
+
+段落按顺序排列，自动逐段推进，适合无分支的线性叙事。
 
 ```json
 {
@@ -49,21 +53,64 @@ python main.py
       "text": "段落文字内容，支持 \\n 换行",
       "effect": "fadein",
       "speed": 30
+    },
+    {
+      "text": "下一段文字",
+      "effect": "typewriter"
     }
   ]
 }
 ```
 
+### 分支格式（字典）
+
+段落以具名 ID 组织，通过 `choices` 或 `next` 字段控制跳转，适合多结局、多分支故事。
+
+```json
+{
+  "title": "游戏标题",
+  "description": "在主菜单显示的简介",
+  "start": "intro",
+  "segments": {
+    "intro": {
+      "text": "故事开头……",
+      "effect": "fadein",
+      "choices": [
+        {"label": "选择A", "next": "branch_a"},
+        {"label": "选择B", "next": "branch_b"}
+      ]
+    },
+    "branch_a": {
+      "text": "走了A路……",
+      "effect": "typewriter",
+      "next": "ending"
+    },
+    "branch_b": {
+      "text": "走了B路……",
+      "effect": "shake",
+      "next": "ending"
+    },
+    "ending": {
+      "text": "故事结束。",
+      "effect": "fadein"
+    }
+  }
+}
+```
+
 ### 字段说明
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `title` | string | ✅ | 游戏标题 |
-| `description` | string | ❌ | 主菜单简介 |
-| `segments` | array | ✅ | 段落列表 |
-| `segments[].text` | string | ✅ | 段落文字，`\n` 换行 |
-| `segments[].effect` | string | ❌ | 演出效果，默认 `fadein` |
-| `segments[].speed` | int | ❌ | 动画速度（毫秒/帧），数值越小越快，默认 `30` |
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `title` | string | 游戏标题 |
+| `description` | string | 主菜单简介 |
+| `start` | string | 起始段落 ID（仅分支格式，默认第一个） |
+| `segments` | array 或 object | 段落列表或段落字典 |
+| `text` | string | 段落文字，`\n` 换行 |
+| `effect` | string | 演出效果，默认 `fadein` |
+| `speed` | int | 动画速度（毫秒/帧），默认 `30` |
+| `next` | string | 下一段落的 ID（分支格式中无选项时使用） |
+| `choices` | array | 选项列表，每项含 `label`（文字）和 `next`（跳转 ID） |
 
 ### 演出效果一览
 
@@ -80,7 +127,9 @@ python main.py
 
 | 按键 | 功能 |
 |------|------|
-| `空格键` | 跳过当前动画 / 下一段 |
+| `空格键` | 跳过当前动画 / 下一段（无选项时） |
+| `1` ~ `9` | 快速选择对应编号的选项 |
+| `BackSpace` | 返回上一段（支持分支回退） |
 | `ESC` | 返回主菜单 |
 
 ---
@@ -92,18 +141,27 @@ Playwright/
 ├── main.py          # 游戏引擎主程序
 ├── README.md
 └── scripts/         # 游戏脚本目录
-    └── 迷失之森.json  # 内置示例脚本
+    ├── 迷失之森.json  # 线性示例：神秘森林冒险（11段）
+    └── 午夜密室.json  # 分支示例：推理悬疑多结局（含选项与分支）
 ```
 
 ---
 
 ## 示例脚本
 
-内置示例 **《迷失之森》**（[scripts/迷失之森.json](scripts/迷失之森.json)）：
+**《迷失之森》**（[scripts/迷失之森.json](scripts/迷失之森.json)）— 线性格式
 
 > 夜幕低垂，你独自踏入一片陌生的神秘森林……
 
-包含 11 段剧情，涵盖全部四种演出效果，可直接运行体验。
+包含 11 段线性剧情，涵盖全部四种演出效果，适合快速体验基础功能。
+
+---
+
+**《午夜密室》**（[scripts/午夜密室.json](scripts/午夜密室.json)）— 分支格式
+
+> 深夜十二点，你被邀请前往废弃庄园调查失踪案……
+
+包含多条剧情线路、三种不同结局，对话选项影响故事走向，支持 BackSpace 回退探索所有分支。
 
 ---
 

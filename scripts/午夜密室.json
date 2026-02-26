@@ -1,0 +1,149 @@
+{
+  "title": "午夜密室",
+  "description": "一个充满选择的推理悬疑故事，你的每个决定都将改变结局",
+  "start": "intro",
+  "segments": {
+    "intro": {
+      "text": "深夜十二点。\n\n你是一名私家侦探，接到匿名电话，被邀请前往城郊废弃庄园调查一起失踪案。\n\n庄园铁门虚掩，门上贴着一张字条：\n\n「 只有真正的侦探才能找到真相。 」",
+      "effect": "fadein",
+      "speed": 25,
+      "next": "gate"
+    },
+    "gate": {
+      "text": "你站在庄园门口，四周一片漆黑，只有远处的灯塔发出微弱的光。\n\n你注意到两条可以进入庄园的路径：\n\n一条是正门大道，宽阔笔直，但落叶密布，似乎很久没有人走过。\n另一条是侧面小道，草木丛生，却有新鲜的泥脚印。",
+      "effect": "typewriter",
+      "speed": 55,
+      "choices": [
+        {"label": "走正门大道", "next": "main_road"},
+        {"label": "跟随泥脚印走侧道", "next": "side_path"}
+      ]
+    },
+    "main_road": {
+      "text": "你迈上正门大道。\n\n两排枯萎的老松树矗立两侧，黑色的枝桠像巨人的手指伸向夜空。\n\n走到一半，你踩到了什么——是一只破碎的手表，表盘定格在 23:47。",
+      "effect": "fadein",
+      "speed": 28,
+      "choices": [
+        {"label": "捡起手表仔细检查", "next": "watch_clue"},
+        {"label": "无视手表，继续前进", "next": "main_hall"}
+      ]
+    },
+    "side_path": {
+      "text": "你跟随泥脚印走入侧道。\n\n脚印越来越清晰，越来越密集——前方草丛里有人影一闪而过！",
+      "effect": "shake",
+      "speed": 16,
+      "choices": [
+        {"label": "大声呼喊，要求对方现身", "next": "call_out"},
+        {"label": "悄悄跟上，不惊动对方", "next": "follow_shadow"}
+      ]
+    },
+    "watch_clue": {
+      "text": "手表背面刻着一行小字：\n\n「 献给我亲爱的Marcus，永远爱你的 —— Elena 」\n\n失踪者……名叫 Marcus。",
+      "effect": "wave",
+      "speed": 20,
+      "next": "main_hall"
+    },
+    "main_hall": {
+      "text": "你推开庄园正门，迈入宽阔的大厅。\n\n正中央的枝形吊灯忽明忽暗，大厅尽头有三扇门：\n\n左边是图书室，透着暖黄色灯光。\n中间是地下室入口，传来阵阵潮湿的霉味。\n右边是书房，门缝里有纸条夹着。",
+      "effect": "fadein",
+      "speed": 25,
+      "choices": [
+        {"label": "进入图书室", "next": "library"},
+        {"label": "下到地下室", "next": "basement"},
+        {"label": "检查书房纸条", "next": "study"}
+      ]
+    },
+    "call_out": {
+      "text": "「 谁在那里！！ 」\n\n你的声音在空旷的庄园中回荡。\n\n一阵沉默之后……那道人影消失了，只留下一串急促的脚步声渐渐远去。",
+      "effect": "shake",
+      "speed": 18,
+      "next": "main_hall"
+    },
+    "follow_shadow": {
+      "text": "你迈着轻盈的步伐悄悄跟上。\n\n人影绕过花坛，钻入庄园侧门——\n\n是一个老人，胸前抱着一叠文件，神情惶恐，反复回头张望。",
+      "effect": "typewriter",
+      "speed": 58,
+      "choices": [
+        {"label": "拦住老人，询问他是谁", "next": "old_man"},
+        {"label": "躲在暗处继续观察", "next": "observe_old"}
+      ]
+    },
+    "old_man": {
+      "text": "老人被你拦住，眼中满是惊恐，随即认出你是侦探。\n\n他颤抖着说：「 你来得正好……Marcus 还活着，但时间不多了。他被关在地下室。那些文件……是灭口的证据！ 」\n\n他把文件塞到你手中，随即消失在黑暗中。",
+      "effect": "wave",
+      "speed": 22,
+      "next": "basement_key"
+    },
+    "observe_old": {
+      "text": "你藏在灌木后，看着老人将文件藏进花坛里的一块空心砖后，匆匆离去。\n\n你悄悄起身，取出那些文件——里面是一份地下室的平面图，以及一把生锈的钥匙。",
+      "effect": "fadein",
+      "speed": 28,
+      "next": "basement_key"
+    },
+    "library": {
+      "text": "图书室里书架林立，一盏台灯亮着。\n\n桌上翻开着一本日记，最后一页写着：\n\n「 2月14日。Elena 发现了一切。我必须在她开口之前…… 」\n\n日记在这里戛然而止。",
+      "effect": "typewriter",
+      "speed": 60,
+      "choices": [
+        {"label": "直奔地下室", "next": "basement"},
+        {"label": "继续翻查图书室", "next": "library_more"}
+      ]
+    },
+    "library_more": {
+      "text": "你扒开书架后面的夹层，找到一个保险箱，密码锁上留着三个字：\n\n「 生日快乐 」\n\n——那只手表，表盘上的时间是 23:47，而这栋庄园建于 1947 年。\n\n你输入 1947，保险箱弹开了，里面是一把地下室的钥匙和一张纸条：「 他还活着。快。 」",
+      "effect": "wave",
+      "speed": 22,
+      "next": "basement_key"
+    },
+    "study": {
+      "text": "书房门缝里夹着的纸条上只有短短一行字：\n\n「 不要相信任何人。包括你自己。 」\n\n你推开书房的门——空无一人，但桌上有一部手机，屏幕上有一条未读消息：\n\n「 地下室，快来，我是 Marcus。 」",
+      "effect": "fadein",
+      "speed": 25,
+      "choices": [
+        {"label": "相信消息，立刻去地下室", "next": "basement"},
+        {"label": "这可能是陷阱，先搜查书房", "next": "study_search"}
+      ]
+    },
+    "study_search": {
+      "text": "你没有轻举妄动。\n\n翻开书桌抽屉，你发现一张地下室的平面图，以及一瓶迷药——有人正在等待将你引入陷阱！\n\n你握紧手电筒，心中有数，迈向地下室。",
+      "effect": "typewriter",
+      "speed": 55,
+      "next": "basement_key"
+    },
+    "basement": {
+      "text": "地下室的铁门紧锁。\n\n你没有钥匙，无论怎么撞击铁门都纹丝不动。\n\n门缝里传来微弱的呼救声……却只能望门兴叹。\n\n真相，与你擦肩而过。",
+      "effect": "shake",
+      "speed": 20,
+      "next": "bad_end"
+    },
+    "basement_key": {
+      "text": "你手持钥匙，来到地下室铁门前。\n\n钥匙插入锁孔，咔嗒一声——\n\n铁门应声而开，一道手电光照进漆黑的地下室深处。",
+      "effect": "fadein",
+      "speed": 25,
+      "next": "find_marcus"
+    },
+    "find_marcus": {
+      "text": "地下室角落里，一名男子被铁链锁在柱子上，衣衫褴褛，但双眼仍有神采。\n\n「 你是……侦探吗？ 」他的声音沙哑，却带着不可思议的平静。\n\n「 我是 Marcus。我知道是谁关了我。 」\n\n「 告诉我，」他说，「 你是怎么找到这里的？ 」",
+      "effect": "wave",
+      "speed": 20,
+      "choices": [
+        {"label": "「我拿到了地下室的钥匙。」", "next": "good_end"},
+        {"label": "「有人给我发了消息。」", "next": "twist_end"}
+      ]
+    },
+    "good_end": {
+      "text": "Marcus 听完，眼中闪过一丝释然。\n\n「 那个老管家……他果然没有背叛我。 」\n\n你解开铁链，扶着 Marcus 走出地下室。\n\n夜风吹过，远处灯塔的光缓缓扫过庄园。\n\n真相大白，案件告破。\n\n——你是一个出色的侦探。",
+      "effect": "fadein",
+      "speed": 22
+    },
+    "twist_end": {
+      "text": "Marcus 沉默了很久。\n\n「 那条消息……」他缓缓抬起头，「 是我的助理发的。而我的助理——三天前就已经死了。 」\n\n你们两人对视，空气凝固。\n\n某个地方，传来脚步声。\n\n正在靠近……",
+      "effect": "shake",
+      "speed": 15
+    },
+    "bad_end": {
+      "text": "你在铁门外徘徊许久，最终什么也没有找到。\n\n天亮时，警察赶到现场，但地下室已经空了。\n\nMarcus 从此下落不明，案件成为悬案。\n\n——有时候，关键的线索只差一步之遥。",
+      "effect": "fadein",
+      "speed": 28
+    }
+  }
+}
