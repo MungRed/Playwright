@@ -1,5 +1,5 @@
-﻿---
-name: git-commit
+---
+name: git-push
 description: 暂存所有更改并提交到 Git 仓库。当用户需要提交代码、git commit、暂存文件、写提交信息时使用此 skill。关键词：git, commit, 提交, 暂存, add, push
 ---
 
