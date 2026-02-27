@@ -14,6 +14,7 @@
 - 支持线性与分支阅读
 - 支持多种文字演出效果
 - 提供左侧 Tab 工具栏（剧本/操作/帮助）
+- 支持段落背景图（渐变/震动）与右侧人物栏展示
 
 ---
 
@@ -24,7 +25,10 @@
 - `engine/game_frame.py`：阅读主界面（状态机、段落推进、交互）
 - `engine/sidebar_tabs.py`：左侧 Tab 工具栏组件（模块化 UI）
 - `engine/effects.py`：文本演出效果实现与注册
+- `engine/background_controller.py`：背景图控制器（加载/适配/渐变/震动）
+- `engine/character_panel.py`：右侧人物栏组件（说话人 + 立绘）
 - `engine/config.py`：主题色与全局路径配置
+- `docs/scenes/*`：背景图与人物图资源
 - `scripts/*.json`：剧本数据（线性 / 分支）
 - `scripts/bootstrap_env.py`：本地环境检查与初始化
 
@@ -54,6 +58,12 @@ python scripts/bootstrap_env.py --check-only
 
 ## 5. 剧本数据约定
 
+### 5.0 资源目录约定
+
+- 生图资源按剧本名分目录保存：`docs/scenes/<script_name>/`。
+- MCP 生图工具支持 `script_name` 入参，默认落盘到对应剧本目录。
+- 剧本中的 `background.image` / `character_image` 建议引用该子目录相对路径。
+
 ### 5.1 线性格式
 
 - `segments` 为数组
@@ -72,6 +82,17 @@ python scripts/bootstrap_env.py --check-only
 - `speed`: 动画速度（ms/帧）
 - `next`: 下一段 ID
 - `choices`: 分支选项
+- `speaker`: 当前说话人名称（用于右侧人物栏）
+- `character_image`: 人物图路径（相对项目根目录或绝对路径）
+- `background`: 背景配置对象
+
+### 5.4 背景配置（background）
+
+- `image`: 背景图路径（推荐放 `docs/scenes/`）
+- `effects`: 背景效果数组，支持 `fade` 与 `shake`
+- `fade_ms`: 背景切换渐变时长（毫秒）
+- `shake_ms`: 背景震动持续时长（毫秒）
+- `shake_strength`: 背景震动强度（像素）
 
 ---
 
@@ -80,7 +101,22 @@ python scripts/bootstrap_env.py --check-only
 ### 6.1 阅读页布局
 
 - 左侧：Tab 工具栏（`ReaderSidebarTabs`）
-- 右侧：阅读主区（标题、文本画布、选项区、底栏）
+- 中间：阅读主区（固定 `1280x720`，标题、文本画布、选项区、底栏）
+- 右侧：人物栏（说话人 + 当前段落立绘）
+- 窗口策略：主菜单默认 `1280x720`；进入阅读页后自动扩展左右栏，且窗口允许手动缩放
+
+### 6.4 背景图渲染约定
+
+- 背景图在 `Canvas` 底层渲染，文本特效帧都会先绘制背景再绘制文字。
+- 背景图使用 cover 策略适配窗口尺寸（保持比例并居中裁切）。
+- 背景切换时可按段落配置执行渐变；惊吓段可配置震动。
+- 文本动效仅清理 `text_layer`，不整画布清空，以避免背景快速闪烁。
+- 背景图定位使用左上角锚点（`nw`），默认不位移，仅在 `shake` 生效时临时位移，避免非预期像素跳动。
+
+### 6.5 文本可读性约定
+
+- 正文区域在背景图上方增加半透明黑色底板（带外边距，不覆盖整幅背景）。
+- 文本起点固定为该底板左上角内边距位置。
 
 ### 6.2 进度与分支可视化
 
@@ -122,6 +158,24 @@ python scripts/bootstrap_env.py --check-only
 
 ## 9. 最近变更记录
 
+- 2026-02-27：修复推进剧情时闪烁与立绘偶发消失：切段时选项浮层改为立即隐藏（不执行淡出过渡），并在段落缺少 `character_image` 时保留上一张可用立绘。
+- 2026-02-27：为选项浮层增加淡入淡出过渡（含轻微位移动画）；显示与隐藏切换更平滑，隐藏结束后仍保持完全移除。
+- 2026-02-27：选项区升级为“按需显示”的半透明浮层：仅在存在 `choices` 时显示并覆盖在画布底部，无选项时完全隐藏。
+- 2026-02-27：阅读页选项区改为覆盖在中间画布底部显示（不再占用下方布局高度），修复“选项出现时挤压背景图片”的问题。
+- 2026-02-27：重排剧本生产流程为四阶段：①对话澄清并产出人设/大纲/剧本形态；②生成仅文本+演出效果剧本（无图片字段）；③生成人物设定图；④二次阅读剧本后生成背景/立绘并回写；同时在场景资产阶段新增“按场景与情绪聚合复用”的降调用策略以节约 API。
+- 2026-02-27：为 `orchestrate-script-production` 补充阶段标准输入/输出字段模板（该版本后续已被四阶段流程模板替代），用于统一跨 skill 交接数据结构。
+- 2026-02-27：将阶段 E 抽离为独立 skill `attach-script-assets`（专职回写 `background.image` / `character_image`）；并将 `orchestrate-script-production` 收敛为纯统筹调度，不再直接执行业务回写。
+- 2026-02-27：完成历史资源迁移：`docs/scenes` 下已有图片按剧本名移动到子目录（`迷失之森/`、`午夜密室/`），并回写对应脚本中的 `background.image` 与 `character_image` 路径。
+- 2026-02-27：生图落盘改为按剧本名分目录（`docs/scenes/<script_name>/`）；`.mcp/image_gen_server.py` 新增 `script_name` 参数并默认隔离资源目录。
+- 2026-02-27：为 `generate-scene-assets` 新增“文生图 / 图生图”标准参数模板；并同步 `.vscode/mcp.json` 支持 `HUNYUAN_API_ACTION`、`HUNYUAN_JOB_TIMEOUT_SEC`、`HUNYUAN_JOB_POLL_SEC`。
+- 2026-02-27：曾将编排 skill `orchestrate-script-production` 调整为五阶段流程（该版本后续已被“四阶段流程重排”替代）；`.mcp/image_gen_server.py` 保持按 `api_action` 选择腾讯混元 `TextToImageLite` 或 `SubmitTextToImageJob`（含 `QueryTextToImageJob` 轮询）。
+- 2026-02-27：重构 skills 流程：`create-script` 聚焦纯文本（世界观/人设/剧情）；新增 `generate-character-images`（人物设定图）、`configure-script-presentation`（演出字段配置）、`generate-scene-assets`（背景图/立绘流程，图生图使用混元3.0，文生图使用混元极速版）；并同步更新 `iterate-skills` 触发映射。
+- 2026-02-27：按 `iterate-skills` 规则完成项目驱动联动更新：`create-script` 已同步当前剧本字段（`speaker`、`character_image`、`background`），`setup-local-env` 完成执行规则与输出精简优化。
+- 2026-02-27：更新 `.claude/skills/iterate-skills/SKILL.md`：除准确性与 token 优化外，新增“按 `docs/DEVELOPMENT.md` 进行项目驱动的 skill 联动迭代”规则（剧本变更联动 `create-script`，环境变更联动 `setup-local-env`）。
+- 2026-02-27：优化窗口几何行为：首次启动窗口居中显示，主菜单/阅读页切换尺寸时保持窗口中心点不变；并优化背景层重绘策略，减少推进剧情时的闪烁。
+- 2026-02-27：窗口改为可变大小，主菜单恢复 1280x720，进入阅读页后自动向左右扩展；新增正文半透明黑底并将文本起点对齐到底板左上角内边距；修复背景图偶发像素跳动。
+- 2026-02-27：重构阅读页：新增 `background_controller.py` 与 `character_panel.py`，将中间阅读区固定为 1280x720，左右栏向外扩展，并通过分层渲染修复背景图快速闪烁问题。
+- 2026-02-27：阅读页新增背景图系统（窗口自适配 + 渐变/震动效果），并新增右侧人物栏（说话人 + 立绘）；同步扩展脚本字段 `speaker`、`character_image`、`background`。
 - 2026-02-27：删除其他生图 provider 逻辑，MCP 生图服务精简为仅支持腾讯混元；并将 `.vscode/mcp.json` 同步为模板内容。
 - 2026-02-27：根据腾讯混元官方文档重构 `hunyuan` 调用逻辑，改为腾讯云标准鉴权（SecretId/SecretKey + Region + Endpoint）。
 - 2026-02-27：新增腾讯混元生图接入（`hunyuan` provider），支持通过 `.vscode/mcp.json` 配置网关与模型后在对话中生成图片。

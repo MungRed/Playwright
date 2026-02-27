@@ -16,6 +16,10 @@
   - `shake` — 文字震动（适合惊险场景）
   - `wave` — 逐字弹入波浪效果
 - **左侧 Tab 工具栏**：通过 Tab 切换“剧本/操作/帮助”界面
+- **背景图层**：段落可配置背景图，支持渐变切换与震动
+- **右侧人物栏**：显示当前说话人物与立绘（可由脚本指定）
+- **自适应窗口模式**：主菜单默认 `1280x720`；进入阅读后自动向左右扩展侧栏，窗口可自由缩放
+- **文字可读性增强**：剧情文字下方自动渲染半透明黑色底板（保留背景可见区域）
 - **剧本 Tab 可视化**：可查看当前剧本进度与分支去向映射
 - **跳过动画**：按空格键可跳过当前动画，直接显示完整文本
 - **返回菜单**：按 ESC 键随时返回主菜单
@@ -72,12 +76,20 @@ python scripts/bootstrap_env.py --check-only
 "TENCENT_TOKEN": "",
 "HUNYUAN_REGION": "ap-guangzhou",
 "HUNYUAN_ENDPOINT": "aiart.tencentcloudapi.com",
+"HUNYUAN_API_ACTION": "TextToImageLite",
 "HUNYUAN_RSP_IMG_TYPE": "url"
 ```
 
-说明：该实现已按腾讯云官方接口 `TextToImageLite`（API 版本 `2022-12-29`）调用。
+说明：
+- `TextToImageLite`：混元极速版（文生图）
+- `SubmitTextToImageJob`：混元 3.0 任务接口（可配合图生图）
+- 代码会按 `api_action` 或环境变量 `HUNYUAN_API_ACTION` 选择接口。
 
 重启 VS Code 后，可直接在对话中让 Agent 生成图片（保存到 `docs/scenes/`）。
+
+资源目录约定：建议按剧本名分目录保存，使用 `docs/scenes/<剧本名>/`，例如：
+- `docs/scenes/迷失之森/scene_forest_night.png`
+- `docs/scenes/午夜密室/char_detective_tense.png`
 
 ---
 
@@ -156,6 +168,19 @@ python scripts/bootstrap_env.py --check-only
 | `speed` | int | 动画速度（毫秒/帧），默认 `30` |
 | `next` | string | 下一段落的 ID（分支格式中无选项时使用） |
 | `choices` | array | 选项列表，每项含 `label`（文字）和 `next`（跳转 ID） |
+| `speaker` | string | 当前段落说话人名称，显示在右侧人物栏 |
+| `character_image` | string | 当前段落人物图路径（相对项目根目录或绝对路径） |
+| `background` | object | 背景图配置对象（见下方） |
+
+### 背景配置（`background`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `image` | string | 背景图路径（建议放 `docs/scenes/`） |
+| `effects` | array[string] | 可选：`fade`、`shake` |
+| `fade_ms` | int | 渐变时长（毫秒） |
+| `shake_ms` | int | 震动时长（毫秒） |
+| `shake_strength` | int | 震动强度（像素） |
 
 ### 演出效果一览
 
@@ -185,17 +210,27 @@ python scripts/bootstrap_env.py --check-only
 Playwright/
 ├── main.py               # 入口：窗口初始化与页面切换
 ├── .claude/skills/       # Copilot Skills
-│   └── setup-local-env/  # 本地环境自检与部署 skill
+│   ├── create-script/                 # 世界观/人设/剧本文本（纯文本）
+│   ├── configure-script-presentation/ # 剧本表现字段配置
+│   ├── generate-character-images/     # 人物设定图生成
+│   ├── generate-scene-assets/         # 背景图与立绘流程生成
+│   ├── attach-script-assets/          # 资源路径回写（background/character）
+│   ├── orchestrate-script-production/ # 端到端编排统筹（仅调度子 skill）
+│   ├── setup-local-env/               # 本地环境自检与部署
+│   └── iterate-skills/                # skills 迭代优化与联动更新
 ├── engine/               # 引擎模块
 │   ├── config.py         # 颜色常量与脚本目录路径
 │   ├── utils.py          # 颜色插值等工具函数
 │   ├── effects.py        # 四种文字演出效果实现与注册表
+│   ├── background_controller.py # 背景图控制（适配/渐变/震动）
+│   ├── character_panel.py # 右侧人物栏组件
 │   ├── menu.py           # 主菜单界面
 │   └── game_frame.py     # 游戏界面（脚本加载、段落展示、交互逻辑）
 ├── scripts/              # 游戏脚本目录
 │   ├── 迷失之森.json      # 线性示例：神秘森林冒险（11段）
 │   └── 午夜密室.json      # 分支示例：推理悬疑多结局
 │   └── bootstrap_env.py  # 本地环境自检与部署脚本
+├── docs/scenes/          # 背景图/人物图等资源
 ├── .gitignore
 └── README.md
 ```
