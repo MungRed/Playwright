@@ -1,0 +1,135 @@
+{
+  "title": "今天也在摸鱼",
+  "description": "成年打工人的短篇日常搞笑故事：在截止日期与奶茶优惠之间艰难求生。",
+  "start": "s0",
+  "segments": {
+    "s0": {
+      "text": "周五上午十点零一分，你刚打开电脑，企业微信就弹出三条红点。\n\n项目经理发来一句：\"中午前能给个版本吗？\"\n\n你盯着屏幕，缓缓把咖啡杯举到嘴边，决定先假装冷静。",
+      "speaker": "旁白",
+      "effect": "fadein",
+      "speed": 28,
+      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_你_calm_v2.png",
+      "background": {
+        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png",
+        "effects": [
+          "fade"
+        ],
+        "fade_ms": 420
+      },
+      "next": "s1"
+    },
+    "s1": {
+      "text": "同事阿秋从工位后面探出头，小声问：\"楼下奶茶第二杯半价，冲不冲？\"\n\n你看了看任务看板上那个刺眼的“P1”，又看了看手机里未使用的满减券。",
+      "speaker": "阿秋",
+      "effect": "typewriter",
+      "speed": 62,
+      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_阿秋_happy_v2.png",
+      "background": {
+        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png"
+      },
+      "choices": [
+        {
+          "label": "先摸去买奶茶，灵感靠糖分激发",
+          "next": "s2_milk"
+        },
+        {
+          "label": "先写两页再说，至少看起来很努力",
+          "next": "s2_work"
+        }
+      ]
+    },
+    "s2_milk": {
+      "text": "你与阿秋以“打印合同”为掩护成功下楼，三分钟后人手一杯波波奶绿。\n\n回到工位时，你发现经理正在群里@全体：\"谁在会议室拿了我的充电器？\"\n\n全办公室进入侦探模式。",
+      "speaker": "旁白",
+      "effect": "wave",
+      "speed": 21,
+      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_阿秋_happy_v2.png",
+      "background": {
+        "image": "docs/scenes/今天也在摸鱼/jtr_scene_tea_shop_noon_v2.png",
+        "effects": [
+          "fade"
+        ],
+        "fade_ms": 360
+      },
+      "next": "s3"
+    },
+    "s2_work": {
+      "text": "你打开文档，标题写下《终版_v7_最终_真最终》。\n\n刚敲完第一段，隔壁工位的机械键盘突然爆发出战鼓般的连击声，你的思路被当场震飞。\n\n阿秋在你耳边幽幽地说：\"要不……先来口奶茶压压惊？\"",
+      "speaker": "旁白",
+      "effect": "shake",
+      "speed": 17,
+      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_你_calm_v2.png",
+      "background": {
+        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png",
+        "effects": [
+          "shake"
+        ],
+        "shake_ms": 320,
+        "shake_strength": 10
+      },
+      "next": "s3"
+    },
+    "s3": {
+      "text": "午饭前十分钟，经理走到你桌边：\"下午客户会想看一个能点的 Demo。\"\n\n你点点头，内心却在默念：\"能点……没说必须点得通。\"",
+      "speaker": "经理",
+      "effect": "typewriter",
+      "speed": 58,
+      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_经理_serious_v2.png",
+      "background": {
+        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png"
+      },
+      "choices": [
+        {
+          "label": "做个视觉很强的“样子货”先顶住",
+          "next": "s4_demo"
+        },
+        {
+          "label": "老老实实先打通核心流程",
+          "next": "s4_core"
+        }
+      ]
+    },
+    "s4_demo": {
+      "text": "你把按钮做得会发光，会呼吸，甚至会在鼠标移入时对你微笑。\n\n客户会开始后，所有人都夸界面高级。\n\n直到客户问：\"这个按钮点了会发生什么？\"",
+      "speaker": "旁白",
+      "effect": "fadein",
+      "speed": 26,
+      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_你_calm_v2.png",
+      "background": {
+        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png"
+      },
+      "next": "ending_fun"
+    },
+    "s4_core": {
+      "text": "你咬牙把核心流程一条条接通，界面朴素得像十年前的内部系统。\n\n客户会开始后，现场沉默了两秒。\n\n客户点点头：\"虽然不花哨，但这个能跑。\"\n\n经理在镜头外偷偷给你竖了个大拇指。",
+      "speaker": "旁白",
+      "effect": "fadein",
+      "speed": 30,
+      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_你_calm_v2.png",
+      "background": {
+        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png"
+      },
+      "next": "ending_win"
+    },
+    "ending_fun": {
+      "text": "你深吸一口气，面不改色地说：\"这是下一迭代的惊喜功能，我们先对齐视觉方向。\"\n\n客户竟然笑了：\"你们团队挺有意思。\"\n\n会议结束后，经理拍拍你肩：\"命保住了，下次记得先把按钮接上。\"\n\n——你获得成就：摸鱼艺术家。",
+      "speaker": "你",
+      "effect": "wave",
+      "speed": 20,
+      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_你_calm_v2.png",
+      "background": {
+        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png"
+      }
+    },
+    "ending_win": {
+      "text": "会议结束，客户当场确认了下一步排期。\n\n你靠在椅背上，喝掉最后一口已经化冰的咖啡，忽然收到阿秋消息：\"今晚奶茶我请，你是今天最硬核的摸鱼王。\"\n\n你看着窗外夕阳，认真地点开外卖软件。\n\n——你获得成就：高效摸鱼大师。",
+      "speaker": "旁白",
+      "effect": "fadein",
+      "speed": 24,
+      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_阿秋_happy_v2.png",
+      "background": {
+        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png"
+      }
+    }
+  }
+}
