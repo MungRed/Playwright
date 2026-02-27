@@ -37,4 +37,4 @@ description: 根据剧本文本为段落配置表现字段（如渐入、震动�
 - 不改写 `text` 文本内容。
 - 不新增图片文件；仅处理 JSON 表现层。
 - 不负责 `background.image` 与 `character_image` 的回写。
-- 保持最小 diff，避免无关格式化。
+- 保持精确改动，避免无关格式化。
