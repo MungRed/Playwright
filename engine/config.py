@@ -5,9 +5,6 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 脚本目录（相对于项目根目录）
 SCRIPTS_DIR = os.path.join(_ROOT, "scripts")
 
-# 封面图路径
-COVER_IMG = os.path.join(_ROOT, "docs", "cover.png")
-
 # ── 背景色 ──
 BG_DARK  = "#0d0d1a"
 BG_MENU  = "#1a1a2e"

@@ -5,9 +5,10 @@ import json
 
 from engine.config import (
     BG_DARK, BG_CARD, BG_HOVER,
-    FG_MAIN, FG_DIM, FG_HINT, ACCENT,
+    FG_MAIN, FG_DIM, FG_HINT,
 )
 from engine.effects import EFFECTS, EFFECT_SKIP_COLOR
+from engine.sidebar_tabs import ReaderSidebarTabs
 
 
 class GameFrame(tk.Frame):
@@ -36,8 +37,18 @@ class GameFrame(tk.Frame):
 
     # ─────────────────────────── UI 构建 ───────────────────────────
     def _build_ui(self):
+        shell = tk.Frame(self, bg=BG_DARK)
+        shell.pack(fill=tk.BOTH, expand=True)
+
+        self._sidebar = ReaderSidebarTabs(shell, on_back=self._on_back, on_escape=self._on_escape)
+        self._sidebar.pack(side=tk.LEFT, fill=tk.Y)
+
+        # 右侧阅读区
+        main = tk.Frame(shell, bg=BG_DARK)
+        main.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
         # 顶栏
-        top = tk.Frame(self, bg=BG_DARK)
+        top = tk.Frame(main, bg=BG_DARK)
         top.pack(fill=tk.X, padx=20, pady=(10, 0))
 
         self._title_lbl = tk.Label(top, text="",
@@ -51,27 +62,18 @@ class GameFrame(tk.Frame):
         back.pack(side=tk.RIGHT)
         back.bind("<Button-1>", self._on_escape)
 
-        tk.Frame(self, bg=BG_CARD, height=1).pack(fill=tk.X, padx=20, pady=(6, 0))
-
-        # 进度条
-        prog_bg = tk.Frame(self, bg="#1a1a33", height=3)
-        prog_bg.pack(fill=tk.X, padx=20, pady=(2, 0))
-        self._prog_bar    = tk.Frame(prog_bg, bg=ACCENT, height=3)
-        self._prog_bar.place(x=0, y=0, relheight=1, width=0)
-        self._prog_bg_ref = prog_bg
-
         # 文字画布（左键点击推进）
-        self._canvas = tk.Canvas(self, bg=BG_DARK, highlightthickness=0,
+        self._canvas = tk.Canvas(main, bg=BG_DARK, highlightthickness=0,
                                  cursor="hand2")
         self._canvas.pack(expand=True, fill=tk.BOTH, padx=50, pady=(20, 0))
         self._canvas.bind("<Button-1>", self._on_advance)
 
         # 选项区域
-        self._choices_frame = tk.Frame(self, bg=BG_DARK)
+        self._choices_frame = tk.Frame(main, bg=BG_DARK)
         self._choices_frame.pack(fill=tk.X, padx=60, pady=(8, 0))
 
         # 底栏
-        bottom = tk.Frame(self, bg=BG_DARK)
+        bottom = tk.Frame(main, bg=BG_DARK)
         bottom.pack(fill=tk.X, pady=(4, 12))
 
         self._hint_lbl = tk.Label(bottom, text="点击或按 [空格键] 继续",
@@ -127,12 +129,14 @@ class GameFrame(tk.Frame):
                 self.current_id   = data.get("start", next(iter(self.segments), ""))
 
             self._title_lbl.config(text=data.get("title", "冒险"))
+            self._sync_sidebar("-")
 
         except Exception as e:
             self.segments     = {"0": {"text": f"脚本加载失败：{e}", "effect": "fadein"}}
             self.current_id   = "0"
             self.is_linear    = True
             self.total_linear = 1
+            self._sync_sidebar("-")
 
     # ─────────────────────────── 段落展示 ───────────────────────────
     def _navigate_to(self, seg_id: str):
@@ -165,24 +169,27 @@ class GameFrame(tk.Frame):
            speed, seg, self._on_anim_done, self._set_after)
 
     def _update_progress(self):
-        self.root.update_idletasks()
-        total_w = self._prog_bg_ref.winfo_width()
-
         if self.is_linear:
             try:
                 idx      = int(self.current_id)
                 progress = (idx + 1) / max(self.total_linear, 1)
-                self._idx_lbl.config(text=f"{idx + 1} / {self.total_linear}")
+                progress_text = f"{idx + 1} / {self.total_linear}（{int(progress * 100)}%）"
             except ValueError:
                 progress = 0
-                self._idx_lbl.config(text="")
+                progress_text = "-"
         else:
             visited  = len(self.history) + 1
             progress = min(visited / max(self.total_linear, 1), 1.0)
-            self._idx_lbl.config(text=f"已探索 {visited} 段")
+            progress_text = f"已探索 {visited} 段（{int(progress * 100)}%）"
 
-        self._prog_bar.place(x=0, y=0, relheight=1,
-                             width=max(2, int(total_w * progress)))
+        self._idx_lbl.config(text=progress_text)
+        self._sync_sidebar(progress_text)
+
+    def _sync_sidebar(self, progress_text: str):
+        visited = set(self.history)
+        if self.current_id:
+            visited.add(self.current_id)
+        self._sidebar.update_script_state(progress_text, self.current_id, self.segments, visited)
 
     def _set_after(self, after_id: str):
         self._after_id = after_id

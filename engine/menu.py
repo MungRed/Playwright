@@ -4,71 +4,31 @@ import tkinter as tk
 import json, os, glob
 
 from engine.config import (
-    SCRIPTS_DIR, COVER_IMG,
+    SCRIPTS_DIR,
     BG_DARK, BG_MENU, BG_CARD, BG_HOVER,
     FG_MAIN, FG_DIM, FG_HINT,
 )
 
-try:
-    from PIL import Image, ImageTk, ImageDraw
-    _PIL_OK = True
-except ImportError:
-    _PIL_OK = False
-
-_W, _H     = 1280, 720
-_PANEL_W   = 760        # 内容面板宽度
-_PANEL_TOP = 390        # 面板顶部 y（标题图下方）
-_PANEL_BG  = "#0c0c1c"  # 与渐变遮罩末色接近
-
 
 class MainMenuFrame(tk.Frame):
     def __init__(self, parent: tk.Tk, game):
-        super().__init__(parent, bg=BG_DARK)
+        super().__init__(parent, bg=BG_MENU)
         self.pack(fill=tk.BOTH, expand=True)
         self.game  = game
-        self._imgs = []   # 防 GC
 
-        # ── Canvas：全屏底层 ──
-        cv = tk.Canvas(self, width=_W, height=_H, bd=0,
-                       highlightthickness=0, bg=BG_DARK)
-        cv.place(x=0, y=0)
+        tk.Label(self, text="剧本阅读器",
+                 font=("Arial Bold", 44),
+                 fg=FG_MAIN, bg=BG_MENU).pack(pady=(48, 8))
+        tk.Label(self, text="选择要阅读的剧本",
+                 font=("Microsoft YaHei", 14),
+                 fg=FG_HINT, bg=BG_MENU).pack(pady=(0, 20))
 
-        # ── 背景图 + 从上到下渐深的遮罩（PIL 合成为单张图）──
-        if _PIL_OK and os.path.isfile(COVER_IMG):
-            try:
-                base = (Image.open(COVER_IMG)
-                             .resize((_W, _H), Image.LANCZOS)
-                             .convert("RGBA"))
-                ov = Image.new("RGBA", (_W, _H), (0, 0, 0, 0))
-                d  = ImageDraw.Draw(ov)
-                for y in range(_H):
-                    t = max(0.0, (y / _H - 0.18) / 0.82)
-                    a = int(min(t ** 1.1, 1.0) * 218)
-                    d.line([(0, y), (_W, y)], fill=(8, 8, 20, a))
-                base.alpha_composite(ov)
-                tk_bg = ImageTk.PhotoImage(base)
-                self._imgs.append(tk_bg)
-                cv.create_image(0, 0, anchor="nw", image=tk_bg)
-            except Exception:
-                # 无图时退化为纯色
-                pass
-        else:
-            # 无封面图：纯色背景 + 文字标题
-            cv.create_text(_W // 2, 160, text="Playwright",
-                           font=("Arial Bold", 64),
-                           fill="#dde2ff")
-            cv.create_text(_W // 2, 240, text="文字冒险游戏引擎",
-                           font=("Microsoft YaHei", 22),
-                           fill="#7788cc")
+        panel = tk.Frame(self, bg=BG_DARK, bd=0)
+        panel.pack(fill=tk.BOTH, expand=False, padx=220, pady=(0, 28))
 
-        # ── 内容面板，通过 create_window 悬浮在图片上 ──
-        panel = tk.Frame(cv, bg=_PANEL_BG, bd=0)
-        cv.create_window(_W // 2, _PANEL_TOP, anchor="n",
-                         window=panel, width=_PANEL_W)
-
-        tk.Label(panel, text="选 择 你 的 冒 险",
+        tk.Label(panel, text="可用剧本",
                  font=("Microsoft YaHei", 12),
-                 fg=FG_HINT, bg=_PANEL_BG).pack(pady=(14, 8))
+                 fg=FG_HINT, bg=BG_DARK).pack(pady=(14, 8))
 
         tk.Frame(panel, bg=BG_CARD, height=1).pack(fill=tk.X, padx=30, pady=(0, 6))
 
@@ -78,9 +38,9 @@ class MainMenuFrame(tk.Frame):
                 self._make_card(panel, s)
         else:
             tk.Label(panel,
-                     text="未找到游戏脚本\n请在 scripts/ 目录下放置 .json 文件",
+                     text="未找到剧本文件\n请在 scripts/ 目录下放置 .json 文件",
                      font=("Microsoft YaHei", 11),
-                     fg=FG_DIM, bg=_PANEL_BG).pack(pady=16)
+                     fg=FG_DIM, bg=BG_DARK).pack(pady=16)
 
         tk.Frame(panel, bg=BG_CARD, height=1).pack(fill=tk.X, padx=30, pady=(6, 0))
 

@@ -10,7 +10,7 @@ class TextAdventureGame:
 
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("文字冒险游戏")
+        self.root.title("剧本阅读器")
         self.root.geometry("1280x720")
         self.root.configure(bg=BG_MENU)
         self.root.resizable(False, False)
