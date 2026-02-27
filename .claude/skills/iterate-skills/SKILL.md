@@ -1,6 +1,6 @@
 ---
 name: iterate-skills
-description: 迭代优化当前仓库的所有 skill 文件，重点提升执行准确性与 token 使用效率。关键词：skill, 优化, 迭代, 准确性, token, 精简, 提示词, workflow
+description: 迭代优化当前仓库的所有 skill 文件；除准确性与 token 效率外，还需根据项目最新实现（以 docs/DEVELOPMENT.md 为准）联动更新相关 skill。关键词：skill, 优化, 迭代, 准确性, token, 精简, 提示词, workflow, DEVELOPMENT
 ---
 
 ## 功能说明
@@ -8,6 +8,7 @@ description: 迭代优化当前仓库的所有 skill 文件，重点提升执行
 自动检查 `.claude/skills/**/SKILL.md`，识别可优化点并执行最小改动优化，重点关注：
 - **准确性**：步骤可执行、顺序正确、约束明确、避免歧义
 - **token 效率**：减少重复、压缩冗余描述、保留必要上下文
+- **项目一致性**：依据 `docs/DEVELOPMENT.md` 的最新约定，同步迭代受影响 skill
 
 ## 适用场景
 
@@ -18,34 +19,56 @@ description: 迭代优化当前仓库的所有 skill 文件，重点提升执行
 ## 执行步骤
 
 1. **发现与收集**
+   - 先读取 `docs/DEVELOPMENT.md`（重点：目录职责、数据约定、运行方式、最近变更记录）
    - 扫描 `.claude/skills/**/SKILL.md`
    - 读取每个 skill 的 frontmatter 与正文结构
 
-2. **质量检查（逐文件）**
+2. **项目变更影响分析（必须）**
+   - 从 `docs/DEVELOPMENT.md` 提取本次项目事实：
+     - 剧本 JSON 字段/语义是否变化
+     - 环境初始化步骤或依赖是否变化
+     - 关键目录、模块职责、运行命令是否变化
+   - 生成“受影响 skill 列表”，仅对受影响 skill 执行更新，避免全量无差别改写
+   - 触发映射（最低要求）：
+       - 剧本文本结构/字段变化（世界观、人设、剧情文本）→ 必须检查并迭代 `create-script`
+       - 剧本演出规则变化（`effect`/`speed`/背景表现）→ 必须检查并迭代 `configure-script-presentation`
+       - 人物设定图生成流程变化 → 必须检查并迭代 `generate-character-images`
+       - 背景图/立绘资产流程变化（含图生图策略）→ 必须检查并迭代 `generate-scene-assets`
+         - 资源路径回写流程变化（`background.image` / `character_image`）→ 必须检查并迭代 `attach-script-assets`
+      - 端到端流程（需求澄清与规划→文本+演出剧本→人物设定图→场景资产生成并回写）发生变化 → 必须检查并迭代 `orchestrate-script-production`
+     - 环境配置、bootstrap 流程、依赖变化 → 必须检查并迭代 `setup-local-env`
+
+3. **质量检查（逐文件）**
    - frontmatter 完整：`name`、`description` 是否存在且语义清晰
    - 步骤可执行：是否包含可落地动作，是否缺关键前置条件
    - 约束完整：是否明确“何时提问/何时直接执行”
    - 输出规范：是否要求简洁结果与错误摘要
    - 冗余度：是否存在重复段落、重复提问、长篇泛化描述
 
-3. **token 优化策略**
+4. **token 优化策略**
    - 合并同义重复句，删除装饰性文字
    - 保留“必须条件”，删除“可推断常识”
    - 将长段解释改为短规则列表（优先 4-8 条）
    - 示例只保留 1 个高价值样例，避免多段冗长样例
 
-4. **准确性增强策略**
+5. **准确性增强策略**
    - 为含副作用动作增加“先确认”或“失败回退”规则
    - 明确默认值（如默认分支、默认范围、默认执行模式）
    - 避免模糊词（如“适当”“尽量”），改为可判定条件
 
-5. **输出改进报告并执行变更**
+6. **项目一致性修正规则（新增）**
+   - skill 中涉及的数据字段、命令、路径、模块名，必须与 `docs/DEVELOPMENT.md` 一致
+   - 若 `DEVELOPMENT.md` 已定义默认行为，skill 不得使用冲突默认值
+   - 发现 `README.md` 与 `DEVELOPMENT.md` 冲突时，优先以 `DEVELOPMENT.md` 为执行基线，并在结果中提示冲突点
+
+7. **输出改进报告并执行变更**
    - 先输出“优化计划”（文件 + 拟修改点）
    - 批量修改并保持最小 diff
    - 输出结果：
      - 已优化文件列表
      - 每个文件的关键改进点（1-3 条）
      - 若有未改项，说明原因
+     - 本次“项目驱动更新”命中情况（例如：`create-script`/`setup-local-env` 是否命中）
 
 ## 评分标准（用于自检）
 
