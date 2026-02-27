@@ -77,13 +77,31 @@ python scripts/bootstrap_env.py --check-only
 "HUNYUAN_REGION": "ap-guangzhou",
 "HUNYUAN_ENDPOINT": "aiart.tencentcloudapi.com",
 "HUNYUAN_API_ACTION": "TextToImageLite",
-"HUNYUAN_RSP_IMG_TYPE": "url"
+"HUNYUAN_RSP_IMG_TYPE": "url",
+"COS_AUTO_UPLOAD_ENABLED": "false",
+"COS_REGION": "ap-guangzhou",
+"COS_BUCKET": "",
+"COS_KEY_PREFIX": "refs"
 ```
 
 说明：
 - `TextToImageLite`：混元极速版（文生图）
 - `SubmitTextToImageJob`：混元 3.0 任务接口（可配合图生图）
 - 代码会按 `api_action` 或环境变量 `HUNYUAN_API_ACTION` 选择接口。
+- 当 `COS_AUTO_UPLOAD_ENABLED=true` 时，`reference_images` 支持本地路径：服务会先尝试按哈希 Key 复用 COS 对象 URL，若不存在再上传。
+
+### COS 参考图上传脚本（可选）
+
+用于手动上传本地参考图并输出 URL（同样先查存在再上传）：
+
+```bash
+python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_sheet_v2.png --script-name 今天也在摸鱼
+```
+
+常用参数：
+- `--bucket` / `COS_BUCKET`
+- `--region` / `COS_REGION`
+- `--signed`（生成临时签名 URL，适合私有读桶）
 
 重启 VS Code 后，可直接在对话中让 Agent 生成图片（保存到 `docs/scenes/`）。
 

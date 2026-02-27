@@ -63,6 +63,8 @@ python scripts/bootstrap_env.py --check-only
 - 生图资源按剧本名分目录保存：`docs/scenes/<script_name>/`。
 - MCP 生图工具支持 `script_name` 入参，默认落盘到对应剧本目录。
 - 剧本中的 `background.image` / `character_image` 建议引用该子目录相对路径。
+- 人物设定图（`char_ref_*`）用于风格与角色一致性参考，不直接绑定到 `character_image`。
+- 剧本绑定的人物图应使用剧情立绘（如 `char_<name>_<mood>.png`）。
 
 ### 5.1 线性格式
 
@@ -115,7 +117,7 @@ python scripts/bootstrap_env.py --check-only
 
 ### 6.5 文本可读性约定
 
-- 正文区域在背景图上方增加半透明黑色底板（带外边距，不覆盖整幅背景）。
+- 正文区域在背景图上方增加深色实底板（带外边距，不覆盖整幅背景），避免点状遮罩纹理影响观感。
 - 文本起点固定为该底板左上角内边距位置。
 
 ### 6.2 进度与分支可视化
@@ -138,6 +140,8 @@ python scripts/bootstrap_env.py --check-only
 - 新成员拉取后自行填写本地 `API_KEY`
 - 生图提供商：仅 `hunyuan`（腾讯混元）
 - 按腾讯云官方 `TextToImageLite` 调用，依赖 `tencentcloud-sdk-python`
+- 图生图支持本地参考图自动上传 COS：当启用 `COS_AUTO_UPLOAD_ENABLED=true` 且 `reference_images` 传本地路径时，服务会先按内容哈希 Key 检查对象是否已存在，存在则直接复用 URL，不存在再上传后回填 URL。
+- COS 自动上传依赖：`cos-python-sdk-v5`（通过 `.mcp/requirements.txt` 安装）。
 
 ---
 
@@ -150,7 +154,7 @@ python scripts/bootstrap_env.py --check-only
 - 变更剧本 JSON 约定或字段语义
 
 更新要求：
-- 只更新受影响章节，保持最小改动
+- 只更新受影响章节，保持精确聚焦
 - 术语与命名必须与代码一致
 - 不写泛化描述，写清“改了什么、影响哪里”
 
@@ -158,6 +162,10 @@ python scripts/bootstrap_env.py --check-only
 
 ## 9. 最近变更记录
 
+- 2026-02-27：修复 COS 自动上传报错兼容性：`image_gen_server.py` 中 `qcloud_cos` 改为动态导入以避免静态诊断误报；并新增 `COS_BUCKET` 规范化（支持从 COS 完整 URL 解析 bucket 名）。
+- 2026-02-27：`.mcp/image_gen_server.py` 新增 COS 自动上传链路：图生图 `reference_images` 支持本地路径，执行“先查 URL（对象存在）再上传”的复用策略；新增配置项（`COS_*`）与 `scripts/upload_to_cos.py` 手动上传脚本。
+- 2026-02-27：升级生图质量流程：人物设定图改为“三视图+装饰细节”设定单；剧本应用阶段改为绑定剧情立绘（不再直接使用 `char_ref_*`）；背景图生成增加“无人物”硬约束与同剧本统一风格锚点，并支持更长提示词以提高一致性与细节质量。
+- 2026-02-27：修复背景切换在文本动画期间停滞导致的“前后背景半透明叠影”问题：背景渐变与震动改为独立持续刷新；同时将正文底板由点状遮罩改为深色实底，提升可读性与观感一致性。
 - 2026-02-27：修复推进剧情时闪烁与立绘偶发消失：切段时选项浮层改为立即隐藏（不执行淡出过渡），并在段落缺少 `character_image` 时保留上一张可用立绘。
 - 2026-02-27：为选项浮层增加淡入淡出过渡（含轻微位移动画）；显示与隐藏切换更平滑，隐藏结束后仍保持完全移除。
 - 2026-02-27：选项区升级为“按需显示”的半透明浮层：仅在存在 `choices` 时显示并覆盖在画布底部，无选项时完全隐藏。
