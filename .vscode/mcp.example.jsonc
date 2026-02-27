@@ -8,15 +8,18 @@
       "args": ["${workspaceFolder}/.mcp/image_gen_server.py"],
       "env": {
 
-        // ── 腾讯混元（官方 TextToImageLite）──────────────────────────────────
-        // 按腾讯云官方 API（TextToImageLite）调用，需 SecretId/SecretKey。
-        // 参考：https://cloud.tencent.com/document/product/1668/120721
+        // ── 腾讯混元（支持极速版 + 3.0任务接口）──────────────────────────────
+        // TextToImageLite（极速版）文档：https://cloud.tencent.com/document/product/1668/120721
+        // SubmitTextToImageJob（3.0）文档：https://cloud.tencent.com/document/product/1668/124632
         "TENCENT_SECRET_ID": "",
         "TENCENT_SECRET_KEY": "",
         "TENCENT_TOKEN": "",
         "HUNYUAN_REGION": "ap-guangzhou",
         "HUNYUAN_ENDPOINT": "aiart.tencentcloudapi.com",
+        "HUNYUAN_API_ACTION": "TextToImageLite",
         "HUNYUAN_RSP_IMG_TYPE": "url",
+        "HUNYUAN_JOB_TIMEOUT_SEC": "180",
+        "HUNYUAN_JOB_POLL_SEC": "2.0",
 
         // ── 图片输出目录 ─────────────────────────────────────────────────────
         "OUTPUT_DIR": "${workspaceFolder}/docs/scenes"
