@@ -3,3 +3,4 @@ mcp>=1.0.0
 httpx>=0.27.0
 Pillow>=10.0.0
 tencentcloud-sdk-python>=3.0.1200
+cos-python-sdk-v5>=1.9.37

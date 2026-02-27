@@ -127,11 +127,12 @@ def import_check() -> CheckResult:
         "import httpx\n"
         "from PIL import Image\n"
         "from mcp.server import Server\n"
+        "from qcloud_cos import CosConfig\n"
         "print('OK')\n"
     )
     code, out = run([str(py), "-c", snippet])
     if code == 0:
-        return CheckResult("模块导入", True, "tkinter/httpx/Pillow/mcp 导入成功")
+        return CheckResult("模块导入", True, "tkinter/httpx/Pillow/mcp/qcloud_cos 导入成功")
     return CheckResult("模块导入", False, f"导入失败：{out[-300:]}")
 
 
