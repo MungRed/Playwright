@@ -50,7 +50,7 @@ python scripts/bootstrap_env.py --check-only
 
 ### API 配置安全说明（Public 仓库）
 
-- 仓库仅提供模板文件：`.vscode/mcp.example.json`
+- 仓库仅提供模板文件：`.vscode/mcp.example.jsonc`
 - 本地实际配置文件：`.vscode/mcp.json`（已在 `.gitignore` 中忽略，不会提交）
 - 首次使用可直接运行 `python scripts/bootstrap_env.py`，会自动从模板生成本地配置
 - 然后在 `.vscode/mcp.json` 中填写你自己的 `API_KEY`
