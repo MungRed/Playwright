@@ -189,6 +189,7 @@ class GameFrame(tk.Frame):
 
     def _on_anim_done(self, seg: dict):
         self.animating = False
+        self._after_id = None
         choices = seg.get("choices", [])
         if choices:
             self._show_choices(choices)
@@ -303,7 +304,7 @@ class GameFrame(tk.Frame):
 
     def _on_back(self, _=None):
         """BackSpace：返回上一段"""
-        if self.animating or self._at_ending or not self.history:
+        if self.animating or not self.history:
             return
         self._hide_choices()
         self._at_ending  = False

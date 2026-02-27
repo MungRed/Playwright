@@ -33,10 +33,10 @@ cx, cy = W // 2, H // 2
 # ── 竖向边框线
 for i, x in enumerate([55, 65]):
     alpha = 180 - i * 70
-    draw.line([(x, cy - 150), (x, cy + 150)], fill=(*ACCENT,), width=2)
+    draw.line([(x, cy - 150), (x, cy + 150)], fill=(*ACCENT, alpha), width=2)
 for i, x in enumerate([W - 55, W - 65]):
     alpha = 180 - i * 70
-    draw.line([(x, cy - 150), (x, cy + 150)], fill=(*ACCENT,), width=2)
+    draw.line([(x, cy - 150), (x, cy + 150)], fill=(*ACCENT, alpha), width=2)
 
 # ── 水平装饰线
 for y_off, half_w in [(168, 360), (174, 300)]:

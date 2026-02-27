@@ -14,6 +14,7 @@
 import tkinter as tk
 import math
 import random
+import unicodedata
 
 from engine.config import BG_DARK, FG_MAIN
 from engine.utils import lerp_color
@@ -112,40 +113,56 @@ def fx_wave(canvas: tk.Canvas, text: str, cx: int, cy: int, cw: int,
             speed: int, seg: dict, on_done, set_after):
     """每个字符依次弹入，带反弹缓动（适合神秘/奇幻场景）"""
     WAVE_COLOR = "#88ddbb"
-    CHAR_W = 18
-    LINE_H = 30
+    UNIT_W     = 9    # ASCII 半角字符像素宽
+    LINE_H     = 30
 
-    # 预计算换行
-    max_chars = max(1, (cw - 60) // CHAR_W)
+    def _char_w(ch: str) -> int:
+        """CJK 全角字符返回 2 倍单元宽，其余返回 1 倍"""
+        return UNIT_W * 2 if unicodedata.east_asian_width(ch) in ('W', 'F') else UNIT_W
+
+    def _line_px(line: str) -> int:
+        return sum(_char_w(ch) for ch in line)
+
+    # 预计算换行（按像素宽度截断）
+    max_px    = cw - 60
     raw_lines = text.split("\n")
     lines: list[str] = []
     for raw in raw_lines:
-        while len(raw) > max_chars:
-            lines.append(raw[:max_chars])
-            raw = raw[max_chars:]
-        lines.append(raw)
+        cur_line, cur_w = "", 0
+        for ch in raw:
+            w = _char_w(ch)
+            if cur_w + w > max_px and cur_line:
+                lines.append(cur_line)
+                cur_line, cur_w = ch, w
+            else:
+                cur_line += ch
+                cur_w    += w
+        lines.append(cur_line)
 
-    total_chars   = sum(len(l) for l in lines)
-    total_frames  = total_chars * 3 + 30
-    frame         = [0]
+    total_chars  = sum(len(l) for l in lines)
+    total_frames = total_chars * 3 + 30
+    frame        = [0]
 
     def tick():
         canvas.delete("all")
         char_idx = 0
         start_y  = cy - (len(lines) - 1) * LINE_H // 2
         for li, line in enumerate(lines):
-            lx = cx - len(line) * CHAR_W // 2
-            for ci, ch in enumerate(line):
+            lx    = cx - _line_px(line) // 2
+            cur_x = lx
+            for ch in line:
+                cw_ch        = _char_w(ch)
                 appear_frame = char_idx * 3
                 if frame[0] >= appear_frame:
                     prog     = min(1.0, (frame[0] - appear_frame) / 10)
                     bounce_y = int(math.sin(prog * math.pi) * -14)
                     col      = lerp_color(BG_DARK, WAVE_COLOR, min(prog * 1.5, 1.0))
-                    canvas.create_text(lx + ci * CHAR_W + CHAR_W // 2,
+                    canvas.create_text(cur_x + cw_ch // 2,
                                        start_y + li * LINE_H + bounce_y,
                                        text=ch,
                                        font=("Microsoft YaHei", 16),
                                        fill=col)
+                cur_x    += cw_ch
                 char_idx += 1
         frame[0] += 1
         if frame[0] <= total_frames:
