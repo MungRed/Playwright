@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parent.parent
 VENV_DIR = ROOT / ".venv"
 REQ_FILE = ROOT / ".mcp" / "requirements.txt"
 MCP_JSON = ROOT / ".vscode" / "mcp.json"
-MCP_EXAMPLE_JSON = ROOT / ".vscode" / "mcp.example.json"
+MCP_EXAMPLE_JSON = ROOT / ".vscode" / "mcp.example.jsonc"
 SCENES_DIR = ROOT / "docs" / "scenes"
 
 
@@ -101,14 +101,14 @@ def ensure_mcp_config(check_only: bool) -> CheckResult:
         return CheckResult(
             "MCP 配置",
             False,
-            "缺少 .vscode/mcp.example.json，无法生成本地配置",
+            "缺少 .vscode/mcp.example.jsonc，无法生成本地配置",
         )
 
     if check_only:
         return CheckResult(
             "MCP 配置",
             False,
-            "未找到 .vscode/mcp.json（check-only 模式未创建，请复制 mcp.example.json 后填写 API_KEY）",
+            "未找到 .vscode/mcp.json（check-only 模式未创建，请复制 mcp.example.jsonc 后填写 API_KEY）",
         )
 
     MCP_JSON.parent.mkdir(parents=True, exist_ok=True)

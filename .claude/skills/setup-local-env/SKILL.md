@@ -19,7 +19,7 @@ description: 自动检查并部署本地环境配置，确保项目在新机器�
 1. 读取项目根目录并确认关键文件是否存在：
    - `main.py`
    - `.mcp/requirements.txt`
-   - `.vscode/mcp.example.json`
+   - `.vscode/mcp.example.jsonc`
 
 2. 运行一键脚本：
    - Windows / PowerShell：`python scripts/bootstrap_env.py`
@@ -46,7 +46,7 @@ description: 自动检查并部署本地环境配置，确保项目在新机器�
 
 ## 注意事项
 
-- 仓库中只提交 `.vscode/mcp.example.json`，不要提交真实 `.vscode/mcp.json`。
+- 仓库中只提交 `.vscode/mcp.example.jsonc`，不要提交真实 `.vscode/mcp.json`。
 - 不要覆盖用户已有 `.vscode/mcp.json`；仅在缺失时从模板创建。
 - 环境修复应优先“增量变更”，避免破坏用户已有配置。
 - 如果用户明确要求“只检查不改动”，则运行脚本的只读模式：
