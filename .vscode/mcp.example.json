@@ -1,0 +1,35 @@
+{
+  // Playwright 项目 —— AI 图像生成 MCP Server 配置模板
+  // 用法：复制为 .vscode/mcp.json 后，再填入你自己的 API_KEY
+  "servers": {
+    "playwright-image-gen": {
+      "type": "stdio",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["${workspaceFolder}/.mcp/image_gen_server.py"],
+      "env": {
+
+        // ── 选择提供商 ───────────────────────────────────────────────────────
+        // placeholder  : 无需 API Key，用 PIL 生成测试渐变图
+        // siliconflow  : 硅基流动，国内直连，推荐 https://siliconflow.cn
+        // openai       : OpenAI DALL-E 3，需要国际网络
+        // stability    : Stability AI，需要国际网络
+        "API_PROVIDER": "placeholder",
+
+        // ── API Key（请填写你自己的，勿提交到仓库）───────────────────────────
+        "API_KEY": "",
+
+        // ── 硅基流动专用：可选模型 ──────────────────────────────────────────
+        // black-forest-labs/FLUX.1-schnell  （快速，免费）
+        // stabilityai/stable-diffusion-3-5-large
+        // Pro/black-forest-labs/FLUX.1-dev  （高质量，付费）
+        "SF_MODEL": "black-forest-labs/FLUX.1-schnell",
+
+        // ── OpenAI 兼容代理（使用 openai 提供商时可选）──────────────────────
+        "OPENAI_BASE_URL": "https://api.openai.com",
+
+        // ── 图片输出目录 ─────────────────────────────────────────────────────
+        "OUTPUT_DIR": "${workspaceFolder}/docs/scenes"
+      }
+    }
+  }
+}

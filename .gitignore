@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 *.pyo
 .venv/
+
+# Local secrets / machine-specific configs
+.vscode/mcp.json
+.env
+.env.*

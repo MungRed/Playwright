@@ -34,6 +34,27 @@
 python main.py
 ```
 
+### 本地环境自检与部署（推荐）
+
+新用户拉取仓库后，建议先执行：
+
+```bash
+python scripts/bootstrap_env.py
+```
+
+仅检查不改动：
+
+```bash
+python scripts/bootstrap_env.py --check-only
+```
+
+### API 配置安全说明（Public 仓库）
+
+- 仓库仅提供模板文件：`.vscode/mcp.example.json`
+- 本地实际配置文件：`.vscode/mcp.json`（已在 `.gitignore` 中忽略，不会提交）
+- 首次使用可直接运行 `python scripts/bootstrap_env.py`，会自动从模板生成本地配置
+- 然后在 `.vscode/mcp.json` 中填写你自己的 `API_KEY`
+
 ---
 
 ## 脚本格式
@@ -139,6 +160,8 @@ python main.py
 ```
 Playwright/
 ├── main.py               # 入口：窗口初始化与页面切换
+├── .claude/skills/       # Copilot Skills
+│   └── setup-local-env/  # 本地环境自检与部署 skill
 ├── engine/               # 引擎模块
 │   ├── config.py         # 颜色常量与脚本目录路径
 │   ├── utils.py          # 颜色插值等工具函数
@@ -148,6 +171,7 @@ Playwright/
 ├── scripts/              # 游戏脚本目录
 │   ├── 迷失之森.json      # 线性示例：神秘森林冒险（11段）
 │   └── 午夜密室.json      # 分支示例：推理悬疑多结局
+│   └── bootstrap_env.py  # 本地环境自检与部署脚本
 ├── .gitignore
 └── README.md
 ```

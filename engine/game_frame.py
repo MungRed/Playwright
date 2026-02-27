@@ -241,11 +241,13 @@ class GameFrame(tk.Frame):
 
     # ─────────────────────────── 结局画面 ───────────────────────────
     def _show_ending(self):
-        c = self._canvas
+        c  = self._canvas
+        cx = self._cw // 2
+        cy = self._ch // 2
         c.delete("all")
-        c.create_text(self._cx, self._cy - 28, text="— 终 —",
+        c.create_text(cx, cy - 28, text="— 终 —",
                       font=("Microsoft YaHei", 26, "bold"), fill="#666688")
-        c.create_text(self._cx, self._cy + 28,
+        c.create_text(cx, cy + 28,
                       text="故事结束，感谢你的体验",
                       font=("Microsoft YaHei", 12), fill=FG_DIM)
         hint = "[ESC] 返回主菜单"
@@ -273,7 +275,7 @@ class GameFrame(tk.Frame):
                 font=("Microsoft YaHei",
                       18 if eff == "shake" else 16,
                       "bold" if eff == "shake" else "normal"),
-                fill=col, width=self._cw - 60, justify=tk.CENTER)
+                fill=col, width=self._cw - 80, justify=tk.LEFT, anchor="nw")
             self._on_anim_done(seg)
             return
 
@@ -331,8 +333,8 @@ class GameFrame(tk.Frame):
 
     @property
     def _cx(self) -> int:
-        return self._cw // 2
+        return 40   # 左边距（CLI 风格左对齐起点）
 
     @property
     def _cy(self) -> int:
-        return self._ch // 2
+        return 30   # 上边距（CLI 风格顶部起点）
