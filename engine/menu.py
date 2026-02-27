@@ -91,12 +91,14 @@ class MainMenuFrame(tk.Frame):
         def on_enter(_=None):
             card.config(bg=BG_HOVER)
             for w in card.winfo_children():
-                w.config(bg=BG_HOVER)
+                if isinstance(w, tk.Label):
+                    w.config(bg=BG_HOVER)
 
         def on_leave(_=None):
             card.config(bg=BG_CARD)
             for w in card.winfo_children():
-                w.config(bg=BG_CARD)
+                if isinstance(w, tk.Label):
+                    w.config(bg=BG_CARD)
 
         for w in [card] + list(card.winfo_children()):
             w.bind("<Button-1>", on_click)

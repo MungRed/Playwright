@@ -20,7 +20,7 @@ from engine.utils import lerp_color
 
 
 def fx_fadein(canvas: tk.Canvas, text: str, cx: int, cy: int, cw: int,
-              speed: int, seg: dict, on_done, set_after):
+              speed: int, seg: dict, on_done, set_after, draw_base=None):
     """文字从背景色渐变为白色（淡入）"""
     STEPS = 40
     step = [0]
@@ -28,11 +28,14 @@ def fx_fadein(canvas: tk.Canvas, text: str, cx: int, cy: int, cw: int,
     def tick():
         t = min(step[0] / STEPS, 1.0)
         color = lerp_color(BG_DARK, FG_MAIN, t)
-        canvas.delete("all")
+        canvas.delete("text_layer")
+        if draw_base:
+            draw_base()
         canvas.create_text(cx, cy, text=text,
                            font=("Microsoft YaHei", 16),
                            fill=color, width=cw - 80,
-                           justify=tk.LEFT, anchor="nw")
+                           justify=tk.LEFT, anchor="nw",
+                           tags=("text_layer",))
         step[0] += 1
         if step[0] <= STEPS:
             set_after(canvas.after(speed, tick))
@@ -43,18 +46,21 @@ def fx_fadein(canvas: tk.Canvas, text: str, cx: int, cy: int, cw: int,
 
 
 def fx_typewriter(canvas: tk.Canvas, text: str, cx: int, cy: int, cw: int,
-                  speed: int, seg: dict, on_done, set_after):
+                  speed: int, seg: dict, on_done, set_after, draw_base=None):
     """逐字打字机效果，末尾有光标闪烁"""
     idx = [0]
 
     def tick():
         partial = text[:idx[0]]
         cursor  = "▌" if idx[0] < len(text) else ""
-        canvas.delete("all")
+        canvas.delete("text_layer")
+        if draw_base:
+            draw_base()
         canvas.create_text(cx, cy, text=partial + cursor,
                            font=("Microsoft YaHei", 16),
                            fill=FG_MAIN, width=cw - 80,
-                           justify=tk.LEFT, anchor="nw")
+                           justify=tk.LEFT, anchor="nw",
+                           tags=("text_layer",))
         idx[0] += 1
         if idx[0] <= len(text):
             set_after(canvas.after(speed, tick))
@@ -65,7 +71,7 @@ def fx_typewriter(canvas: tk.Canvas, text: str, cx: int, cy: int, cw: int,
 
 
 def fx_shake(canvas: tk.Canvas, text: str, cx: int, cy: int, cw: int,
-             speed: int, seg: dict, on_done, set_after):
+             speed: int, seg: dict, on_done, set_after, draw_base=None):
     """红色文字震动效果（适合危险/惊吓场景）"""
     SHAKE_COLOR = "#ff5555"
     SHAKE_TIMES = 22
@@ -75,11 +81,14 @@ def fx_shake(canvas: tk.Canvas, text: str, cx: int, cy: int, cw: int,
     def fadein_tick():
         t = fi_step[0] / FI_STEPS
         color = lerp_color(BG_DARK, SHAKE_COLOR, t)
-        canvas.delete("all")
+        canvas.delete("text_layer")
+        if draw_base:
+            draw_base()
         canvas.create_text(cx, cy, text=text,
                            font=("Microsoft YaHei", 18, "bold"),
                            fill=color, width=cw - 80,
-                           justify=tk.LEFT, anchor="nw")
+                           justify=tk.LEFT, anchor="nw",
+                           tags=("text_layer",))
         fi_step[0] += 1
         if fi_step[0] <= FI_STEPS:
             set_after(canvas.after(speed, fadein_tick))
@@ -88,28 +97,32 @@ def fx_shake(canvas: tk.Canvas, text: str, cx: int, cy: int, cw: int,
 
     def shake_tick(s: int):
         if s >= SHAKE_TIMES:
-            canvas.delete("all")
+            canvas.delete("text_layer")
             canvas.create_text(cx, cy, text=text,
                                font=("Microsoft YaHei", 18, "bold"),
                                fill=SHAKE_COLOR, width=cw - 80,
-                               justify=tk.LEFT, anchor="nw")
+                               justify=tk.LEFT, anchor="nw",
+                               tags=("text_layer",))
             on_done(seg)
             return
         intensity = 1.0 - s / SHAKE_TIMES
         dx = int(random.randint(-8, 8) * intensity)
         dy = int(random.randint(-4, 4) * intensity)
-        canvas.delete("all")
+        canvas.delete("text_layer")
+        if draw_base:
+            draw_base()
         canvas.create_text(cx + dx, cy + dy, text=text,
                            font=("Microsoft YaHei", 18, "bold"),
                            fill=SHAKE_COLOR, width=cw - 80,
-                           justify=tk.LEFT, anchor="nw")
+                           justify=tk.LEFT, anchor="nw",
+                           tags=("text_layer",))
         set_after(canvas.after(speed, lambda: shake_tick(s + 1)))
 
     fadein_tick()
 
 
 def fx_wave(canvas: tk.Canvas, text: str, cx: int, cy: int, cw: int,
-            speed: int, seg: dict, on_done, set_after):
+            speed: int, seg: dict, on_done, set_after, draw_base=None):
     """每个字符依次弹入，带反弹缓动（适合神秘/奇幻场景）"""
     import tkinter.font as tkfont
     WAVE_COLOR = "#88ddbb"
@@ -151,7 +164,9 @@ def fx_wave(canvas: tk.Canvas, text: str, cx: int, cy: int, cw: int,
     frame        = [0]
 
     def tick():
-        canvas.delete("all")
+        canvas.delete("text_layer")
+        if draw_base:
+            draw_base()
         for idx, (px, li, ch) in enumerate(char_positions):
             appear_frame = idx * 3
             if frame[0] >= appear_frame:
@@ -162,7 +177,8 @@ def fx_wave(canvas: tk.Canvas, text: str, cx: int, cy: int, cw: int,
                                    text=ch,
                                    font=FONT_SPEC,
                                    fill=col,
-                                   anchor="nw")
+                                   anchor="nw",
+                                   tags=("text_layer",))
         frame[0] += 1
         if frame[0] <= total_frames:
             set_after(canvas.after(speed, tick))
