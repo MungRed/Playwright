@@ -61,6 +61,24 @@ python scripts/bootstrap_env.py --check-only
 - 首次使用可直接运行 `python scripts/bootstrap_env.py`，会自动从模板生成本地配置
 - 然后在 `.vscode/mcp.json` 中填写你自己的 `API_KEY`
 
+### 腾讯混元生图接入
+
+本项目生图能力已精简为仅支持腾讯混元。请在 `.vscode/mcp.json` 配置：
+
+```jsonc
+"API_PROVIDER": "hunyuan",
+"TENCENT_SECRET_ID": "你的腾讯云 SecretId",
+"TENCENT_SECRET_KEY": "你的腾讯云 SecretKey",
+"TENCENT_TOKEN": "",
+"HUNYUAN_REGION": "ap-guangzhou",
+"HUNYUAN_ENDPOINT": "aiart.tencentcloudapi.com",
+"HUNYUAN_RSP_IMG_TYPE": "url"
+```
+
+说明：该实现已按腾讯云官方接口 `TextToImageLite`（API 版本 `2022-12-29`）调用。
+
+重启 VS Code 后，可直接在对话中让 Agent 生成图片（保存到 `docs/scenes/`）。
+
 ---
 
 ## 脚本格式

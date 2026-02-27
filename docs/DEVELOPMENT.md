@@ -100,6 +100,8 @@ python scripts/bootstrap_env.py --check-only
 - 仓库不提交真实 API 配置：`.vscode/mcp.json` 已忽略
 - 提交模板：`.vscode/mcp.example.jsonc`
 - 新成员拉取后自行填写本地 `API_KEY`
+- 生图提供商：仅 `hunyuan`（腾讯混元）
+- 按腾讯云官方 `TextToImageLite` 调用，依赖 `tencentcloud-sdk-python`
 
 ---
 
@@ -120,6 +122,9 @@ python scripts/bootstrap_env.py --check-only
 
 ## 9. 最近变更记录
 
+- 2026-02-27：删除其他生图 provider 逻辑，MCP 生图服务精简为仅支持腾讯混元；并将 `.vscode/mcp.json` 同步为模板内容。
+- 2026-02-27：根据腾讯混元官方文档重构 `hunyuan` 调用逻辑，改为腾讯云标准鉴权（SecretId/SecretKey + Region + Endpoint）。
+- 2026-02-27：新增腾讯混元生图接入（`hunyuan` provider），支持通过 `.vscode/mcp.json` 配置网关与模型后在对话中生成图片。
 - 2026-02-27：修复分支剧本在首个选项处报错 `NameError: BG_CARD` 的问题（恢复 `game_frame.py` 所需颜色常量导入）。
 - 2026-02-27：项目定位由“文字冒险游戏”调整为“剧本阅读器”。
 - 2026-02-27：阅读页改为左侧工具栏，并新增“查看当前进度”。
