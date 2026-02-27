@@ -174,6 +174,7 @@ class GameFrame(tk.Frame):
 
         self._background.configure_for_segment(seg)
         self._background.refresh()
+        self._ensure_bg_animation()
         self._character_panel.update_segment(seg)
 
         self._draw_text_backdrop()
@@ -449,15 +450,13 @@ class GameFrame(tk.Frame):
         self.game.show_main_menu()
 
     def _ensure_bg_animation(self):
-        if not self._background.has_active_animation or self.animating or self._bg_anim_after:
+        if not self._background.has_active_animation or self._bg_anim_after:
             return
 
         def tick():
             self._bg_anim_after = None
-            if self.animating:
-                return
             self._background.refresh()
-            if self._background.has_active_animation and not self.animating:
+            if self._background.has_active_animation:
                 self._bg_anim_after = self._canvas.after(33, tick)
 
         self._bg_anim_after = self._canvas.after(33, tick)
@@ -513,9 +512,8 @@ class GameFrame(tk.Frame):
             top,
             right,
             bottom,
-            fill="#000000",
+            fill=BG_DARK,
             outline="",
-            stipple="gray50",
             tags=("text_backdrop_layer",),
         )
         self._canvas.tag_raise("text_backdrop_layer")
