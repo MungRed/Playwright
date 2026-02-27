@@ -5,12 +5,19 @@
     {
       "text": "夜幕低垂，你独自站在一片陌生的森林边缘。\n\n树木高耸入云，遮蔽了月光，只有远处偶尔传来的虫鸣声打破了这片寂静。",
       "effect": "fadein",
-      "speed": 25
+      "speed": 25,
+      "speaker": "旁白",
+      "background": {
+        "image": "docs/scenes/迷失之森/forest_night_test.png",
+        "effects": ["fade"],
+        "fade_ms": 520
+      }
     },
     {
       "text": "你深吸一口气，鼓起勇气，踏入了黑暗的树林之中。\n\n脚下的枯叶发出沙沙的声响，每一步都让你的心跳加速。",
       "effect": "typewriter",
-      "speed": 60
+      "speed": 60,
+      "speaker": "旅行者"
     },
     {
       "text": "走了不知多久，你发现自己迷路了。\n\n四周的树木看起来都一模一样，昏暗的光线让你难以辨别方向。",
@@ -20,7 +27,14 @@
     {
       "text": "突然——\n\n一声巨响从你身后传来！",
       "effect": "shake",
-      "speed": 15
+      "speed": 15,
+      "speaker": "未知声音",
+      "background": {
+        "image": "docs/scenes/迷失之森/forest_night_test.png",
+        "effects": ["shake"],
+        "shake_ms": 420,
+        "shake_strength": 14
+      }
     },
     {
       "text": "你猛地回头，却只看见几片枯叶缓缓飘落。\n\n是风……只是风而已。\n\n你苦笑着告诉自己。",
@@ -50,7 +64,8 @@
     {
       "text": "屋内，篝火燃烧，书架林立，墙上挂满了来自四面八方旅人留下的地图与信件。\n\n一位白发老人抬起头，对你微微一笑：\n\n「 终于来了，我等你很久了。 」",
       "effect": "wave",
-      "speed": 20
+      "speed": 20,
+      "speaker": "白发老人"
     },
     {
       "text": "故事，才刚刚开始……",
