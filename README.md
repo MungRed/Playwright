@@ -78,6 +78,8 @@ python scripts/bootstrap_env.py --check-only
 "HUNYUAN_ENDPOINT": "aiart.tencentcloudapi.com",
 "HUNYUAN_API_ACTION": "TextToImageLite",
 "HUNYUAN_RSP_IMG_TYPE": "url",
+"HUNYUAN_RETRY_MAX": "3",
+"HUNYUAN_RETRY_BASE_SEC": "1.5",
 "COS_AUTO_UPLOAD_ENABLED": "false",
 "COS_REGION": "ap-guangzhou",
 "COS_BUCKET": "",
@@ -88,7 +90,18 @@ python scripts/bootstrap_env.py --check-only
 - `TextToImageLite`：混元极速版（文生图）
 - `SubmitTextToImageJob`：混元 3.0 任务接口（可配合图生图）
 - 代码会按 `api_action` 或环境变量 `HUNYUAN_API_ACTION` 选择接口。
+- 默认支持限流/瞬时失败自动重试：`HUNYUAN_RETRY_MAX` + `HUNYUAN_RETRY_BASE_SEC`。
+- `TextToImageLite` 默认会进行分辨率归一化（横图 `1280x720`、竖图 `720x1280`、方图 `1024x1024`）以降低失败率。
 - 当 `COS_AUTO_UPLOAD_ENABLED=true` 时，`reference_images` 支持本地路径：服务会先尝试按哈希 Key 复用 COS 对象 URL，若不存在再上传。
+- 同一剧本目录会维护 `_style_contract.json`，用于持续复用 `style_anchor/negative_anchor`，减少风格漂移。
+- `_style_contract.json` 采用双锚点：
+  - `background_style_anchor` / `background_negative_anchor`
+  - `character_style_anchor` / `character_negative_anchor`
+  这样可避免背景与角色互相覆盖风格参数。
+
+提示词建议：
+- 背景图使用长提示词，至少包含：主体要素、镜头构图、光照色调、材质细节、文本可读区留白。
+- 角色图使用长提示词，至少包含：角色识别特征、情绪强度、构图范围、服装延续点、线稿/边缘清晰度约束。
 
 ### COS 参考图上传脚本（可选）
 
@@ -180,6 +193,7 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
 | `title` | string | 游戏标题 |
 | `description` | string | 主菜单简介 |
 | `start` | string | 起始段落 ID（仅分支格式，默认第一个） |
+| `shared` | object | 流水线共享数据（规划、人设图、资产清单、阶段状态） |
 | `segments` | array 或 object | 段落列表或段落字典 |
 | `text` | string | 段落文字，`\n` 换行 |
 | `effect` | string | 演出效果，默认 `fadein` |
@@ -189,6 +203,40 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
 | `speaker` | string | 当前段落说话人名称，显示在右侧人物栏 |
 | `character_image` | string | 当前段落人物图路径（相对项目根目录或绝对路径） |
 | `background` | object | 背景图配置对象（见下方） |
+
+### 共享数据（`shared`，推荐）
+
+```json
+"shared": {
+  "planning": {
+    "requirements_summary": "...",
+    "script_form": "novel_light_choices",
+    "worldview": "...",
+    "characters": [{ "name": "林澈", "profile": "..." }],
+    "outline": [{ "chapter": 1, "summary": "..." }]
+  },
+  "style_contract": {
+    "style_anchor": "anime visual novel, clean lineart",
+    "negative_anchor": "低质量, 模糊, 水印, 文本"
+  },
+  "character_refs": [
+    { "name": "林澈", "image": "docs/scenes/迷失之森/char_ref_林澈_v1.png" }
+  ],
+  "asset_manifest": [
+    {
+      "segment_id": "s1",
+      "background_image": "docs/scenes/迷失之森/scene_s1.png",
+      "character_image": "docs/scenes/迷失之森/char_林澈_calm.png"
+    }
+  ],
+  "pipeline_state": {
+    "stage": "4",
+    "updated_at": "2026-02-28"
+  }
+}
+```
+
+说明：历史脚本若使用顶层 `planning` 仍可兼容读取，建议逐步迁移到 `shared.planning`。
 
 ### 背景配置（`background`）
 

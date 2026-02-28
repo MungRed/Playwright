@@ -65,6 +65,7 @@ python scripts/bootstrap_env.py --check-only
 - 剧本中的 `background.image` / `character_image` 建议引用该子目录相对路径。
 - 人物设定图（`char_ref_*`）用于风格与角色一致性参考，不直接绑定到 `character_image`。
 - 剧本绑定的人物图应使用剧情立绘（如 `char_<name>_<mood>.png`）。
+- 生图服务会在剧本资源目录维护 `docs/scenes/<script_name>/_style_contract.json` 作为风格契约缓存（style/negative 锚点）。
 
 ### 5.1 线性格式
 
@@ -79,6 +80,7 @@ python scripts/bootstrap_env.py --check-only
 
 ### 5.3 常用字段
 
+- `shared`: 剧本流水线共享数据容器（推荐）
 - `text`: 段落正文
 - `effect`: `fadein | typewriter | shake | wave`
 - `speed`: 动画速度（ms/帧）
@@ -88,7 +90,20 @@ python scripts/bootstrap_env.py --check-only
 - `character_image`: 人物图路径（相对项目根目录或绝对路径）
 - `background`: 背景配置对象
 
-### 5.4 背景配置（background）
+### 5.4 共享数据协议（shared）
+
+- 顶层建议使用 `shared` 作为流水线单一共享数据源。
+- 推荐由各阶段按最小改动读写：
+	- `shared.planning`：阶段1需求摘要、世界观、人设、大纲、剧本形态
+	- `shared.style_contract`：双锚点画风约束
+		- `background_style_anchor` / `background_negative_anchor`
+		- `character_style_anchor` / `character_negative_anchor`
+	- `shared.character_refs`：人物设定图路径清单
+	- `shared.asset_manifest`：段落资产映射（`segment_id`、`background_image`、`character_image`）
+	- `shared.pipeline_state`：阶段进度与统计信息
+- 兼容历史脚本：若仅有顶层 `planning`，可读取后迁移到 `shared.planning`。
+
+### 5.5 背景配置（background）
 
 - `image`: 背景图路径（推荐放 `docs/scenes/`）
 - `effects`: 背景效果数组，支持 `fade` 与 `shake`
@@ -140,6 +155,10 @@ python scripts/bootstrap_env.py --check-only
 - 新成员拉取后自行填写本地 `API_KEY`
 - 生图提供商：仅 `hunyuan`（腾讯混元）
 - 按腾讯云官方 `TextToImageLite` 调用，依赖 `tencentcloud-sdk-python`
+- 生图服务默认支持质量稳定化参数：`scene_type`、`style_anchor`、`negative_anchor`、`enforce_style`、`strict_no_people`、`retry_max`。
+- 生图服务默认支持退避重试：`HUNYUAN_RETRY_MAX`、`HUNYUAN_RETRY_BASE_SEC`。
+- `TextToImageLite` 会做分辨率归一化以降低失败率：横图→`1280x720`、竖图→`720x1280`、方图→`1024x1024`。
+- 提示词策略要求：允许长提示词，推荐按“主体要素 + 构图镜头 + 光照色调 + 材质细节 + 用途约束”分层描述；背景需增加文本可读区留白约束，立绘需增加表情强度与边缘清晰度约束。
 - 图生图支持本地参考图自动上传 COS：当启用 `COS_AUTO_UPLOAD_ENABLED=true` 且 `reference_images` 传本地路径时，服务会先按内容哈希 Key 检查对象是否已存在，存在则直接复用 URL，不存在再上传后回填 URL。
 - COS 自动上传依赖：`cos-python-sdk-v5`（通过 `.mcp/requirements.txt` 安装）。
 
@@ -162,6 +181,11 @@ python scripts/bootstrap_env.py --check-only
 
 ## 9. 最近变更记录
 
+- 2026-02-28：清理并固化 `style_contract` 双锚点结构：移除历史兼容键 `style_anchor`/`negative_anchor`；服务端更新时自动清理旧键，防止字段回流。
+- 2026-02-28：将生图风格契约升级为双锚点：`background_*` 与 `character_*` 分离存储，避免背景与角色锚点互相覆盖；并同步 skill 与文档采用长提示词分层写法以提升质量稳定性。
+- 2026-02-28：增强 `.mcp/image_gen_server.py` 生图稳定性：新增风格契约持久化（`_style_contract.json`）、`scene_type`/`style_anchor`/`negative_anchor`/`enforce_style`/`strict_no_people` 参数、限流与瞬时失败自动重试（`retry_max` + 退避）、以及 `TextToImageLite` 分辨率归一化；并同步更新流水线 skill 调用约定。
+- 2026-02-28：统一剧本流水线共享数据协议：`orchestrate/create-script/configure-script-presentation/generate-character-images/generate-scene-assets/attach-script-assets` 全部改为读取并维护脚本顶层 `shared`（`planning/style_contract/character_refs/asset_manifest/pipeline_state`），并要求兼容历史顶层 `planning` 迁移。
+- 2026-02-28：补充“阶段1规划包落盘”约定：剧本 JSON 可选新增顶层 `planning` 字段（需求摘要、世界观、人设、大纲、剧本形态）；并在 `scripts/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王.json` 实际写入该字段，解决仅在对话中可见而项目内不可追溯的问题。
 - 2026-02-28：按 `configure-script-presentation` 规则校准 `scripts/今天也在摸鱼.json`、`scripts/迷失之森.json`、`scripts/午夜密室.json` 的演出层字段（`effect`/`speed`），仅调整表现参数，不改写 `text` 与资源路径字段。
 - 2026-02-27：修复 COS 自动上传报错兼容性：`image_gen_server.py` 中 `qcloud_cos` 改为动态导入以避免静态诊断误报；并新增 `COS_BUCKET` 规范化（支持从 COS 完整 URL 解析 bucket 名）。
 - 2026-02-27：`.mcp/image_gen_server.py` 新增 COS 自动上传链路：图生图 `reference_images` 支持本地路径，执行“先查 URL（对象存在）再上传”的复用策略；新增配置项（`COS_*`）与 `scripts/upload_to_cos.py` 手动上传脚本。
