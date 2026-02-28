@@ -1,0 +1,8 @@
+{
+  "background_style_anchor": "anime visual novel background, clean lineart, soft global illumination, cinematic composition, consistent color grading, readable midtone contrast",
+  "background_negative_anchor": "low quality, blurry, watermark, text artifact, inconsistent rendering, 人物, 人影, 路人",
+  "character_style_anchor": "anime visual novel character illustration, clean lineart, cel shading, stable character design, consistent color palette",
+  "character_negative_anchor": "low quality, blurry, watermark, deformed anatomy, inconsistent face",
+  "updated_at": "2026-02-28T20:20:05",
+  "last_scene_type": "character"
+}
