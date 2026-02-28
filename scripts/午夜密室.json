@@ -76,8 +76,8 @@
     },
     "follow_shadow": {
       "text": "你迈着轻盈的步伐悄悄跟上。\n\n人影绕过花坛，钻入庄园侧门——\n\n是一个老人，胸前抱着一叠文件，神情惶恐，反复回头张望。",
-      "effect": "typewriter",
-      "speed": 58,
+      "effect": "shake",
+      "speed": 18,
       "choices": [
         {"label": "拦住老人，询问他是谁", "next": "old_man"},
         {"label": "躲在暗处继续观察", "next": "observe_old"}
@@ -85,8 +85,8 @@
     },
     "old_man": {
       "text": "老人被你拦住，眼中满是惊恐，随即认出你是侦探。\n\n他颤抖着说：「 你来得正好……Marcus 还活着，但时间不多了。他被关在地下室。那些文件……是灭口的证据！ 」\n\n他把文件塞到你手中，随即消失在黑暗中。",
-      "effect": "wave",
-      "speed": 22,
+      "effect": "typewriter",
+      "speed": 62,
       "speaker": "老管家",
       "next": "basement_key"
     },

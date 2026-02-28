@@ -162,6 +162,7 @@ python scripts/bootstrap_env.py --check-only
 
 ## 9. 最近变更记录
 
+- 2026-02-28：按 `configure-script-presentation` 规则校准 `scripts/今天也在摸鱼.json`、`scripts/迷失之森.json`、`scripts/午夜密室.json` 的演出层字段（`effect`/`speed`），仅调整表现参数，不改写 `text` 与资源路径字段。
 - 2026-02-27：修复 COS 自动上传报错兼容性：`image_gen_server.py` 中 `qcloud_cos` 改为动态导入以避免静态诊断误报；并新增 `COS_BUCKET` 规范化（支持从 COS 完整 URL 解析 bucket 名）。
 - 2026-02-27：`.mcp/image_gen_server.py` 新增 COS 自动上传链路：图生图 `reference_images` 支持本地路径，执行“先查 URL（对象存在）再上传”的复用策略；新增配置项（`COS_*`）与 `scripts/upload_to_cos.py` 手动上传脚本。
 - 2026-02-27：升级生图质量流程：人物设定图改为“三视图+装饰细节”设定单；剧本应用阶段改为绑定剧情立绘（不再直接使用 `char_ref_*`）；背景图生成增加“无人物”硬约束与同剧本统一风格锚点，并支持更长提示词以提高一致性与细节质量。

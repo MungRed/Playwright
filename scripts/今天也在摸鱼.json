@@ -41,8 +41,8 @@
     "s2_milk": {
       "text": "你与阿秋以“打印合同”为掩护成功下楼，三分钟后人手一杯波波奶绿。\n\n回到工位时，你发现经理正在群里@全体：\"谁在会议室拿了我的充电器？\"\n\n全办公室进入侦探模式。",
       "speaker": "旁白",
-      "effect": "wave",
-      "speed": 21,
+      "effect": "fadein",
+      "speed": 29,
       "character_image": "docs/scenes/今天也在摸鱼/jtr_char_阿秋_happy_v2.png",
       "background": {
         "image": "docs/scenes/今天也在摸鱼/jtr_scene_tea_shop_noon_v2.png",
@@ -114,8 +114,8 @@
     "ending_fun": {
       "text": "你深吸一口气，面不改色地说：\"这是下一迭代的惊喜功能，我们先对齐视觉方向。\"\n\n客户竟然笑了：\"你们团队挺有意思。\"\n\n会议结束后，经理拍拍你肩：\"命保住了，下次记得先把按钮接上。\"\n\n——你获得成就：摸鱼艺术家。",
       "speaker": "你",
-      "effect": "wave",
-      "speed": 20,
+      "effect": "typewriter",
+      "speed": 56,
       "character_image": "docs/scenes/今天也在摸鱼/jtr_char_你_calm_v2.png",
       "background": {
         "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png"

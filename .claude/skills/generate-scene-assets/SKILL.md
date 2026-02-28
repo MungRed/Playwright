@@ -104,9 +104,13 @@ description: 根据剧本与人物设定图生成流程中的背景图与人物�
    "height": 1024,
    "api_action": "SubmitTextToImageJob",
    "reference_images": [
-      "https://example.com/character_ref_1.png"
+      "docs/scenes/午夜密室/char_ref_侦探_v1.png"
    ]
 }
 ```
 
 适用：需要保持角色外观一致（有参考图）的人物立绘或连续镜头资产。
+
+`reference_images` 支持：
+- 本地路径（如 `docs/scenes/.../char_ref_*.png`）：当 `COS_AUTO_UPLOAD_ENABLED=true` 时，服务自动按内容哈希上传并复用 URL，无需手动处理。
+- 公开 URL：直接传入，无需 COS 配置。

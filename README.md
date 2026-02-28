@@ -235,7 +235,9 @@ Playwright/
 │   ├── attach-script-assets/          # 资源路径回写（background/character）
 │   ├── orchestrate-script-production/ # 端到端编排统筹（仅调度子 skill）
 │   ├── setup-local-env/               # 本地环境自检与部署
-│   └── iterate-skills/                # skills 迭代优化与联动更新
+│   ├── iterate-skills/                # skills 迭代优化与联动更新
+│   ├── update-readme/                 # 自动同步更新 README
+│   └── git-push/                      # 暂存提交 Git 改动
 ├── engine/               # 引擎模块
 │   ├── config.py         # 颜色常量与脚本目录路径
 │   ├── utils.py          # 颜色插值等工具函数
@@ -243,11 +245,14 @@ Playwright/
 │   ├── background_controller.py # 背景图控制（适配/渐变/震动）
 │   ├── character_panel.py # 右侧人物栏组件
 │   ├── menu.py           # 主菜单界面
+│   ├── sidebar_tabs.py   # 左侧 Tab 工具栏（剧本/操作/帮助）
 │   └── game_frame.py     # 游戏界面（脚本加载、段落展示、交互逻辑）
 ├── scripts/              # 游戏脚本目录
 │   ├── 迷失之森.json      # 线性示例：神秘森林冒险（11段）
-│   └── 午夜密室.json      # 分支示例：推理悬疑多结局
-│   └── bootstrap_env.py  # 本地环境自检与部署脚本
+│   ├── 午夜密室.json      # 分支示例：推理悬疑多结局
+│   ├── 今天也在摸鱼.json  # 分支示例：打工人日常搞笑故事
+│   ├── bootstrap_env.py  # 本地环境自检与部署脚本
+│   └── upload_to_cos.py  # COS 参考图上传脚本
 ├── docs/scenes/          # 背景图/人物图等资源
 ├── .gitignore
 └── README.md
