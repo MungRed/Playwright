@@ -13,25 +13,42 @@ description: 根据人设调用生图 API 生成角色设定图，输出可用�
 - 后视图（Back）
 - 装饰细节（配饰/鞋履/道具局部）
 
+## 共享数据读写（必须执行）
+
+- 默认从脚本 `shared.planning.characters` 读取人物设定；仅在缺失时才使用外部传入角色参数。
+- 读取 `shared.style_contract` 作为统一画风锚点（如 `style_anchor`、`negative_anchor`）。
+- 读取 `shared.style_contract.character_style_anchor` 与 `shared.style_contract.character_negative_anchor` 作为人物专用锚点。
+- 生成完成后写回 `shared.character_refs`（角色 -> 设定图路径）。
+- 同步更新 `shared.pipeline_state`（阶段3完成、生成数量、复用数量）。
+
 ## 执行步骤
 
 1. 收集输入：
    - 剧本名（用于落盘目录）
-   - 阶段1规划包中的人物设定（若已存在则直接复用）
+   - 阶段1规划包中的人物设定（优先读取 `shared.planning`）
    - 角色名、性别表现、年龄段、外观关键词、服装关键词、风格关键词
    - 图片比例（默认横向设定单）与数量（默认 1）
 
 2. 生成提示词（允许长提示词，优先完整约束）：
    - 正向提示词：角色核心特征 + 服装材质 + 配色方案 + 三视图版式 + 细节特写要求 + 画风约束 + 线稿与上色质量要求
    - 反向提示词：低质量、模糊、水印、文本、畸形
+   - 必须拼接 `shared.style_contract.character_style_anchor` 与 `shared.style_contract.character_negative_anchor`
+   - 推荐长提示词模板：
+     1) 角色身份与年龄感
+     2) 发型/五官/体型与辨识特征
+     3) 服装层次、材质与配色
+     4) 构图与镜头（半身/胸像/正侧背）
+     5) 线条、阴影、边缘清晰度、可叠加背景约束
 
 3. 调用生图 API：
    - 使用仓库已有生图工具生成图片
    - 默认尺寸：`1536x1024`（横向设定单，容纳三视图与细节区）
    - 保存路径：`docs/scenes/<script_name>/char_ref_<character>_v1.png`
+   - 调用参数建议：`scene_type=character`、`enforce_style=true`、`retry_max>=2`
 
 4. 结果检查：
    - 图片可打开、尺寸正确、命名可追踪
+   - 写回 `shared.character_refs`
    - 输出给用户：路径、提示词摘要、可选迭代方向
 
 ## 默认值
@@ -44,5 +61,6 @@ description: 根据人设调用生图 API 生成角色设定图，输出可用�
 ## 注意事项
 
 - 本 skill 只负责角色设定图，不改剧本 JSON。
+- 本 skill 不改 `segments` 文本内容，但必须维护 `shared.character_refs`。
 - 若用户未提供关键人设，先要求最少信息后再生成。
 - 不生成暴力、违规内容。

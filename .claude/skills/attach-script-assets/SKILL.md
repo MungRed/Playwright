@@ -11,11 +11,17 @@ description: 将已生成的背景图与人物立绘路径回写到剧本 JSON�
 
 本 skill 只处理“路径绑定”，不生成文本、不生成图片、不配置演出字段。
 
+## 共享数据读写（必须执行）
+
+- 默认从脚本 `shared.asset_manifest` 读取映射清单；外部传入清单仅作为覆盖输入。
+- 写回完成后更新 `shared.pipeline_state`（阶段4-attach 完成、回写段落数、跳过数）。
+- 保留 `shared` 其他字段（`planning`、`style_contract`、`character_refs`）。
+
 ## 执行步骤
 
 1. 读取输入：
    - 目标剧本路径
-   - 资产清单（`segment_id` -> 背景图路径、人物图路径）
+   - 资产清单（`segment_id` -> 背景图路径、人物图路径，默认取 `shared.asset_manifest`）
    - 回写策略：仅补缺或允许覆盖（默认仅补缺）
 
 2. 识别剧本结构：
@@ -35,6 +41,7 @@ description: 将已生成的背景图与人物立绘路径回写到剧本 JSON�
 5. 输出结果：
    - 成功回写段落数
    - 新增/跳过/覆盖统计
+   - `shared.pipeline_state` 更新结果
    - 最终剧本路径
 
 ## 默认值
@@ -58,3 +65,4 @@ description: 将已生成的背景图与人物立绘路径回写到剧本 JSON�
 - 不修改剧情文本与分支逻辑。
 - 不负责图片生成；依赖 `generate-scene-assets` 的产物。
 - 保持精确改动，避免无关格式化。
+- 若 `shared.asset_manifest` 为空，应中止并提示先执行场景资产阶段。

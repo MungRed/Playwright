@@ -9,6 +9,13 @@ description: 根据剧本文本为段落配置表现字段（如渐入、震动�
 
 本 skill 可独立使用，不属于剧本资产生产主链路的必经步骤。
 
+## 共享数据读写（必须执行）
+
+- 执行前读取 `shared`（至少读取 `shared.planning`）。
+- 可选读取 `shared.style_contract` 以统一演出节奏（例如同类场景速度区间）。
+- 执行后更新 `shared.pipeline_state`（标记阶段2完成、时间戳、影响段落数）。
+- 严禁清空或覆盖 `shared` 其他字段。
+
 ## 执行步骤
 
 1. 读取脚本并识别段落情绪：
@@ -26,6 +33,7 @@ description: 根据剧本文本为段落配置表现字段（如渐入、震动�
 
 4. 写回与汇总：
    - 仅修改表现字段：`effect`、`speed`、`background.effects`、`fade_ms`、`shake_ms`、`shake_strength`
+   - 追加更新 `shared.pipeline_state`
    - 输出受影响段落数量和关键调整点
 
 ## 默认值
@@ -38,3 +46,4 @@ description: 根据剧本文本为段落配置表现字段（如渐入、震动�
 - 不新增图片文件；仅处理 JSON 表现层。
 - 不负责 `background.image` 与 `character_image` 的回写。
 - 保持精确改动，避免无关格式化。
+- 不改写 `shared.planning`、`shared.character_refs`、`shared.asset_manifest`。
