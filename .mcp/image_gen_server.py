@@ -14,6 +14,7 @@ import mimetypes
 import os
 import re
 import time
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote, urlparse
 
@@ -32,11 +33,24 @@ HUNYUAN_RSP_IMG_TYPE = os.getenv("HUNYUAN_RSP_IMG_TYPE", "url")  # url | base64
 HUNYUAN_API_ACTION = os.getenv("HUNYUAN_API_ACTION", "TextToImageLite")
 HUNYUAN_JOB_TIMEOUT_SEC = int(os.getenv("HUNYUAN_JOB_TIMEOUT_SEC", "180"))
 HUNYUAN_JOB_POLL_SEC = float(os.getenv("HUNYUAN_JOB_POLL_SEC", "2.0"))
+HUNYUAN_RETRY_MAX = int(os.getenv("HUNYUAN_RETRY_MAX", "3"))
+HUNYUAN_RETRY_BASE_SEC = float(os.getenv("HUNYUAN_RETRY_BASE_SEC", "1.5"))
 OUTPUT_DIR = os.getenv(
     "OUTPUT_DIR",
     str(Path(__file__).parent.parent / "docs" / "scenes")
 )
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+STYLE_CONTRACT_FILE = "_style_contract.json"
+
+DEFAULT_BG_STYLE_ANCHOR = (
+    "anime visual novel background, clean lineart, soft global illumination, "
+    "cinematic composition, consistent color grading"
+)
+DEFAULT_CHAR_STYLE_ANCHOR = (
+    "anime visual novel character illustration, clean lineart, cel shading, "
+    "stable character design, consistent color palette"
+)
+DEFAULT_NEGATIVE_ANCHOR = "低质量, 模糊, 水印, 文本, logo, 畸形, 多余肢体"
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -122,6 +136,34 @@ async def list_tools() -> list[types.Tool]:
                         "enum": ["TextToImageLite", "SubmitTextToImageJob"],
                         "default": HUNYUAN_API_ACTION,
                     },
+                    "scene_type": {
+                        "type": "string",
+                        "description": "场景类型：auto(自动推断) / background(背景图) / character(人物图)",
+                        "enum": ["auto", "background", "character"],
+                        "default": "auto",
+                    },
+                    "style_anchor": {
+                        "type": "string",
+                        "description": "风格锚点（可选）。传入后会优先用于当前生成并持久化到剧本 style contract。",
+                    },
+                    "negative_anchor": {
+                        "type": "string",
+                        "description": "负向风格锚点（可选）。用于统一排除项并持久化。",
+                    },
+                    "enforce_style": {
+                        "type": "boolean",
+                        "description": "是否强制拼接风格锚点，默认 true。",
+                        "default": True,
+                    },
+                    "strict_no_people": {
+                        "type": "boolean",
+                        "description": "背景图是否强制无人物约束，默认 true。",
+                        "default": True,
+                    },
+                    "retry_max": {
+                        "type": "integer",
+                        "description": "失败重试次数（覆盖环境变量 HUNYUAN_RETRY_MAX）。",
+                    },
                     "reference_images": {
                         "type": "array",
                         "description": "图生图参考图列表（仅 SubmitTextToImageJob 可用，最多3项）。支持公网 URL，或在启用 COS_AUTO_UPLOAD_ENABLED 时传本地路径自动上传。",
@@ -145,6 +187,12 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
     width = int(arguments.get("width", 1280))
     height = int(arguments.get("height", 720))
     api_action = str(arguments.get("api_action", HUNYUAN_API_ACTION))
+    scene_type_arg = str(arguments.get("scene_type", "auto")).strip().lower() or "auto"
+    style_anchor_arg = str(arguments.get("style_anchor", "")).strip()
+    negative_anchor_arg = str(arguments.get("negative_anchor", "")).strip()
+    enforce_style = bool(arguments.get("enforce_style", True))
+    strict_no_people = bool(arguments.get("strict_no_people", True))
+    retry_max = int(arguments.get("retry_max", HUNYUAN_RETRY_MAX))
     reference_images_raw = arguments.get("reference_images", []) or []
     if not isinstance(reference_images_raw, list):
         reference_images_raw = [str(reference_images_raw)]
@@ -152,28 +200,60 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
     safe_script_name = _sanitize_script_name(script_name)
     out_dir = Path(OUTPUT_DIR) / safe_script_name
     out_dir.mkdir(parents=True, exist_ok=True)
+    style_contract_path = out_dir / STYLE_CONTRACT_FILE
     safe_filename = Path(filename).name
     out_path = out_dir / safe_filename
+    scene_type = _infer_scene_type(safe_filename, scene_type_arg)
+    normalized_width, normalized_height = _normalize_resolution(width, height, api_action)
+
+    style_contract = _load_style_contract(style_contract_path)
+    effective_style_anchor = _resolve_style_anchor(style_contract, scene_type, style_anchor_arg)
+    effective_negative_anchor = _resolve_negative_anchor(style_contract, scene_type, negative_anchor_arg)
+
+    if enforce_style and not effective_style_anchor:
+        effective_style_anchor = DEFAULT_BG_STYLE_ANCHOR if scene_type == "background" else DEFAULT_CHAR_STYLE_ANCHOR
+    if not effective_negative_anchor:
+        effective_negative_anchor = DEFAULT_NEGATIVE_ANCHOR
+
+    effective_prompt = _compose_prompt(prompt, scene_type, effective_style_anchor, enforce_style, strict_no_people)
+    effective_negative_prompt = _compose_negative_prompt(
+        negative_prompt,
+        scene_type,
+        effective_negative_anchor,
+        strict_no_people,
+    )
 
     try:
         resolved_refs, uploaded_refs = await _resolve_reference_images(reference_images_raw, safe_script_name)
-        img_bytes = await _hunyuan(
-            prompt,
-            negative_prompt,
-            width,
-            height,
+        img_bytes = await _hunyuan_with_retries(
+            prompt=effective_prompt,
+            negative_prompt=effective_negative_prompt,
+            width=normalized_width,
+            height=normalized_height,
             api_action=api_action,
             reference_images=resolved_refs,
+            retry_max=max(0, retry_max),
         )
         out_path.write_bytes(img_bytes)
+
+        _update_style_contract(style_contract, scene_type, effective_style_anchor, effective_negative_anchor)
+        _save_style_contract(style_contract_path, style_contract)
+
         result = {
             "success": True,
             "path": str(out_path),
             "script_name": safe_script_name,
             "provider": "hunyuan",
             "api_action": api_action,
+            "scene_type": scene_type,
             "prompt": prompt,
-            "size": f"{width}x{height}",
+            "effective_prompt": effective_prompt,
+            "negative_prompt": effective_negative_prompt,
+            "requested_size": f"{width}x{height}",
+            "size": f"{normalized_width}x{normalized_height}",
+            "style_contract": str(style_contract_path),
+            "effective_style_anchor": effective_style_anchor,
+            "effective_negative_anchor": effective_negative_anchor,
             "resolved_reference_images": resolved_refs,
             "uploaded_reference_images": uploaded_refs,
         }
@@ -181,6 +261,181 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
         result = {"success": False, "error": str(exc)}
 
     return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
+
+
+async def _hunyuan_with_retries(
+    prompt: str,
+    negative_prompt: str,
+    width: int,
+    height: int,
+    api_action: str,
+    reference_images: list[str],
+    retry_max: int,
+) -> bytes:
+    attempt = 0
+    while True:
+        try:
+            return await _hunyuan(
+                prompt,
+                negative_prompt,
+                width,
+                height,
+                api_action=api_action,
+                reference_images=reference_images,
+            )
+        except Exception as exc:
+            msg = str(exc)
+            if attempt >= retry_max or not _is_retryable_error(msg):
+                raise
+            sleep_sec = max(0.5, HUNYUAN_RETRY_BASE_SEC * (2 ** attempt))
+            await asyncio.sleep(sleep_sec)
+            attempt += 1
+
+
+def _is_retryable_error(message: str) -> bool:
+    low = message.lower()
+    markers = [
+        "requestlimitexceeded",
+        "jobnumexceed",
+        "limitexceeded",
+        "timeout",
+        "temporarily unavailable",
+        "connection reset",
+        "read timed out",
+    ]
+    return any(m in low for m in markers)
+
+
+def _infer_scene_type(filename: str, explicit: str) -> str:
+    if explicit in {"background", "character"}:
+        return explicit
+    low = filename.lower()
+    if low.startswith("scene_"):
+        return "background"
+    if low.startswith("char_"):
+        return "character"
+    return "background"
+
+
+def _normalize_resolution(width: int, height: int, api_action: str) -> tuple[int, int]:
+    w = max(256, int(width))
+    h = max(256, int(height))
+    action = (api_action or "").strip()
+
+    if action != "TextToImageLite":
+        return w, h
+
+    ratio = w / h
+    if 0.9 <= ratio <= 1.1:
+        return 1024, 1024
+    if ratio > 1.1:
+        return 1280, 720
+    return 720, 1280
+
+
+def _load_style_contract(path: Path) -> dict:
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _resolve_style_anchor(style_contract: dict, scene_type: str, style_anchor_arg: str) -> str:
+    if style_anchor_arg.strip():
+        return style_anchor_arg.strip()
+
+    if scene_type == "background":
+        return str(
+            style_contract.get("background_style_anchor")
+            or style_contract.get("style_anchor")
+            or ""
+        ).strip()
+
+    return str(
+        style_contract.get("character_style_anchor")
+        or style_contract.get("style_anchor")
+        or ""
+    ).strip()
+
+
+def _resolve_negative_anchor(style_contract: dict, scene_type: str, negative_anchor_arg: str) -> str:
+    if negative_anchor_arg.strip():
+        return negative_anchor_arg.strip()
+
+    if scene_type == "background":
+        return str(
+            style_contract.get("background_negative_anchor")
+            or style_contract.get("negative_anchor")
+            or ""
+        ).strip()
+
+    return str(
+        style_contract.get("character_negative_anchor")
+        or style_contract.get("negative_anchor")
+        or ""
+    ).strip()
+
+
+def _update_style_contract(
+    style_contract: dict,
+    scene_type: str,
+    style_anchor: str,
+    negative_anchor: str,
+) -> None:
+    if scene_type == "background":
+        style_contract["background_style_anchor"] = style_anchor
+        style_contract["background_negative_anchor"] = negative_anchor
+    else:
+        style_contract["character_style_anchor"] = style_anchor
+        style_contract["character_negative_anchor"] = negative_anchor
+
+    style_contract["updated_at"] = datetime.now().isoformat(timespec="seconds")
+    style_contract["last_scene_type"] = scene_type
+    style_contract.pop("style_anchor", None)
+    style_contract.pop("negative_anchor", None)
+
+
+def _save_style_contract(path: Path, payload: dict) -> None:
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _compose_prompt(
+    user_prompt: str,
+    scene_type: str,
+    style_anchor: str,
+    enforce_style: bool,
+    strict_no_people: bool,
+) -> str:
+    chunks: list[str] = []
+    if user_prompt.strip():
+        chunks.append(user_prompt.strip())
+
+    if scene_type == "background" and strict_no_people:
+        chunks.append("无人场景, 无人物, no people, no character")
+
+    if enforce_style and style_anchor.strip():
+        chunks.append(style_anchor.strip())
+
+    return "，".join(chunks)
+
+
+def _compose_negative_prompt(
+    user_negative: str,
+    scene_type: str,
+    negative_anchor: str,
+    strict_no_people: bool,
+) -> str:
+    chunks: list[str] = []
+    if user_negative.strip():
+        chunks.append(user_negative.strip())
+    if negative_anchor.strip():
+        chunks.append(negative_anchor.strip())
+    if scene_type == "background" and strict_no_people:
+        chunks.append("人物, 人影, 路人")
+    return ", ".join(chunks)
 
 
 async def _hunyuan(
