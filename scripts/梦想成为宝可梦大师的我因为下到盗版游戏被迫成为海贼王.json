@@ -1,0 +1,262 @@
+{
+  "title": "梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王",
+  "description": "无选项长篇搞笑日常：一位想收集伙伴的普通青年，误入盗版冒险程序后，被系统硬生生推上了海上寻宝打工路。",
+  "planning": {
+    "requirements_summary": "新建长篇无选项搞笑日常小说；目标受众为核心玩家；以都市+轻航海冒险为舞台，强调反差喜剧与成长感。",
+    "script_form": "novel_light_choices",
+    "style": "搞笑日常",
+    "length": "long",
+    "audience": "核心玩家",
+    "worldview": "在近未来都市中，盗版游戏平台会错误触发跨题材任务绑定。主角原本计划进行收集养成，却被系统强制转入‘见习海贼’职业线，在现实城市与港口环境中完成一连串荒诞但温暖的日常冒险。",
+    "characters": [
+      {
+        "name": "陆朝",
+        "profile": "主角，20岁出头，普通都市青年，轻社恐但责任感强。起点是‘想成为宝可梦大师’，中途被迫转线，成长为能独当一面的甲板副手。"
+      },
+      {
+        "name": "小派",
+        "profile": "盗版渠道专属引导员（数字客服精灵），话术专业但常带调侃，负责发布任务与规则解释，推动剧情节奏。"
+      },
+      {
+        "name": "柚子",
+        "profile": "见习航海士，做事干练、对新人严格但会适时鼓励，承担训练者与伙伴双重角色。"
+      },
+      {
+        "name": "黑胡椒店长",
+        "profile": "夜市补给摊主，夸张台词担当，负责提供补给与喜剧氛围强化。"
+      }
+    ],
+    "outline": [
+      {
+        "chapter": 1,
+        "summary": "主角深夜下载盗版游戏，理想职业被系统强制改写，收到不可退出的见习海贼任务。"
+      },
+      {
+        "chapter": 2,
+        "summary": "在旧码头与柚子会合并登上训练船，完成从规则认知到基础训练的适应过程。"
+      },
+      {
+        "chapter": 3,
+        "summary": "傍晚至夜市阶段连续完成荒诞任务（勇气/导航/找零徽章），通过挫折与玩笑推进角色关系。"
+      },
+      {
+        "chapter": 4,
+        "summary": "深夜返航穿雾，由主角接舵并成功通过浮标线，获得队友认可与身份升级。"
+      },
+      {
+        "chapter": 5,
+        "summary": "次日回归日常，主角重新理解‘成为大师’的意义，留下持续成长的开放式收束。"
+      }
+    ]
+  },
+  "segments": [
+    {
+      "text": "周六凌晨，你抱着‘今天一定要集齐图鉴’的伟大理想，点开了一个名字很长、图标还会眨眼的游戏下载页面。",
+      "speaker": "旁白",
+      "effect": "fadein",
+      "speed": 30,
+      "background": {
+        "image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/scene_room_night.png"
+      }
+    },
+    {
+      "text": "下载进度到 99% 时，屏幕突然弹出一行金光闪闪的大字：\n\n《恭喜！你已自动加入伟大航线实习班（不可退出）》",
+      "effect": "shake",
+      "speed": 17
+    },
+    {
+      "text": "你疯狂点关闭，结果弹窗自己长出小翅膀，绕着桌面飞了三圈，最后落成一个像客服头像的小人。",
+      "effect": "wave",
+      "speed": 22
+    },
+    {
+      "text": "“你好，我叫小派，盗版渠道专属引导员。”\n\n“从今天起，你的训练家梦想自动转职为——见习海贼王。”",
+      "speaker": "小派",
+      "effect": "typewriter",
+      "speed": 62,
+      "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_小派_cheerful.png"
+    },
+    {
+      "text": "你盯着屏幕沉默了五秒，问了人生中最严肃的问题：\n\n“那我囤的三百个精灵球还能退吗？”",
+      "speaker": "陆朝",
+      "effect": "typewriter",
+      "speed": 58,
+      "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_陆朝_panic.png",
+      "background": {
+        "image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/scene_city_street_night.png"
+      }
+    },
+    {
+      "text": "小派推了推并不存在的眼镜：\n\n“不能退，但可兑换同等价值的海盐饭团与防水地图贴纸。”",
+      "speaker": "小派",
+      "effect": "typewriter",
+      "speed": 64,
+      "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_小派_smug.png"
+    },
+    {
+      "text": "下一秒，你的手机导航被强制改版。平日的地铁线变成了‘浅海航道’，小区门口便利店被标记为‘新手补给港’。",
+      "effect": "fadein",
+      "speed": 31
+    },
+    {
+      "text": "系统任务跳出：\n\n【请在 30 分钟内前往旧码头，领取你的第一艘‘精神之船’。】\n\n你看了眼窗外，只有共享单车。",
+      "effect": "wave",
+      "speed": 23
+    },
+    {
+      "text": "你抱着怀疑人生的心态到了旧码头，结果在售票亭后面看到一辆贴着木纹贴纸的脚踏船。",
+      "effect": "fadein",
+      "speed": 29,
+      "background": {
+        "image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/scene_old_dock_day.png"
+      }
+    },
+    {
+      "text": "“欢迎登船，船名《不加班号》。”\n\n一个扎高马尾的女生从缆绳后探头，“我是柚子，今天起负责教你别把船开进奶茶店。”",
+      "speaker": "柚子",
+      "effect": "typewriter",
+      "speed": 61,
+      "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_柚子_calm.png"
+    },
+    {
+      "text": "你认真点头，刚踩上船板就听见‘咔哒’一声。不是船裂了，是你口袋里那张年卡自动升级成了‘航海月票’。",
+      "effect": "shake",
+      "speed": 18
+    },
+    {
+      "text": "小派在你肩膀上投影出教学界面：\n\n“第一课：见人先微笑，见浪先系好鞋带，见宝箱先拍照存证。”",
+      "speaker": "小派",
+      "effect": "typewriter",
+      "speed": 59,
+      "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_小派_cheerful.png"
+    },
+    {
+      "text": "午后训练开始。你本以为要学习剑术，结果柚子递给你一把拖把：\n\n“先学甲板清洁。真正的强者，先从不滑倒开始。”",
+      "speaker": "柚子",
+      "effect": "typewriter",
+      "speed": 57,
+      "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_柚子_serious.png"
+    },
+    {
+      "text": "你擦了二十分钟，甲板亮到能照出刘海分叉。系统立即提示：\n\n【恭喜解锁被动技能：反光自省 Lv.1】",
+      "effect": "wave",
+      "speed": 21
+    },
+    {
+      "text": "傍晚，你们驶向城北防波堤。海风很认真，夕阳很努力，只有你的方向感在请假。",
+      "effect": "fadein",
+      "speed": 30,
+      "background": {
+        "image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/scene_training_deck_sunset.png"
+      }
+    },
+    {
+      "text": "“左满舵！”柚子喊。\n\n你把保温杯盖拧满了。\n\n船原地转圈，小派在空中发出客服专属叹息。",
+      "effect": "shake",
+      "speed": 16
+    },
+    {
+      "text": "转到第七圈时，你突然看见海面上漂着一个发光补给箱。打开后里面只有三样东西：雨衣、口哨、以及一本《社恐也能当船长》。",
+      "effect": "fadein",
+      "speed": 28
+    },
+    {
+      "text": "你翻开第一页，上面写着：\n\n“遇事先深呼吸，再把锅分给天气。”\n\n你觉得很有道理，立刻把刚才转圈解释为‘风向实验’。",
+      "speaker": "陆朝",
+      "effect": "typewriter",
+      "speed": 60,
+      "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_陆朝_calm.png"
+    },
+    {
+      "text": "晚饭时间，你们靠岸到夜市补给。摊主黑胡椒店长拍着胸口说：\n\n“我这章鱼烧，吃一口加两点士气，三口加一段回忆。”",
+      "speaker": "黑胡椒店长",
+      "effect": "typewriter",
+      "speed": 63,
+      "background": {
+        "image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/scene_night_market.png"
+      }
+    },
+    {
+      "text": "你刚咬第一口，系统立刻弹窗：\n\n【剧情推进：请在今晚前集齐“勇气、导航、和找零”三枚徽章。】\n\n你低头看钱包，突然只剩二维码。",
+      "effect": "wave",
+      "speed": 22
+    },
+    {
+      "text": "第一枚“勇气徽章”来得很突然——一只海鸥叼走了你的饭团，你在全码头注视下追着海鸥跑了三百米。",
+      "effect": "shake",
+      "speed": 19
+    },
+    {
+      "text": "第二枚“导航徽章”更离谱。你误把直播带货船当成目标灯塔，结果被主播拉去讲了五分钟“新手如何优雅晕船”。",
+      "effect": "fadein",
+      "speed": 29
+    },
+    {
+      "text": "第三枚“找零徽章”则来自柚子的终极考核：\n\n“在夜市排队高峰中，精确找回 3 块 5，还要保持礼貌微笑。”",
+      "speaker": "柚子",
+      "effect": "typewriter",
+      "speed": 58,
+      "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_柚子_serious.png"
+    },
+    {
+      "text": "你完成得出奇顺利，甚至被旁边大爷夸了句“这孩子将来能当会计船长”。小派当场给你放了 0.8 秒庆祝烟花。",
+      "effect": "fadein",
+      "speed": 27
+    },
+    {
+      "text": "深夜返航时，海上起雾。《不加班号》在雾里像一块会漂浮的便当盒。柚子把舵递给你：\n\n“这段你来。”",
+      "speaker": "柚子",
+      "effect": "wave",
+      "speed": 20,
+      "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_柚子_serious.png",
+      "background": {
+        "image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/scene_fog_sea_night.png"
+      }
+    },
+    {
+      "text": "你紧张得手心冒汗，脑子里却突然想起白天那句‘先系好鞋带’。你低头确认鞋带，抬头再看，前方浮标居然全对上了。",
+      "effect": "fadein",
+      "speed": 31,
+      "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_陆朝_heroic.png"
+    },
+    {
+      "text": "“可以啊，新人。”\n\n柚子难得笑了。小派也在角落偷偷把你的称号从‘临时乘客’改成‘甲板副手（试用期）’。",
+      "speaker": "旁白",
+      "effect": "typewriter",
+      "speed": 56,
+      "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_柚子_happy.png"
+    },
+    {
+      "text": "第二天清晨，系统发布周报：\n\n【本周收获：\n- 朋友 2 名\n- 实用技能 5 项\n- 仍未实现的最初梦想 1 个】",
+      "effect": "fadein",
+      "speed": 30,
+      "background": {
+        "image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/scene_room_morning.png"
+      }
+    },
+    {
+      "text": "你看着最后一行，忽然没那么焦虑了。也许‘成为大师’不只一种路径，先把今天的船开稳，也算一种进化。",
+      "speaker": "陆朝",
+      "effect": "wave",
+      "speed": 21,
+      "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_陆朝_heroic.png"
+    },
+    {
+      "text": "中午，你回到电脑前，发现那个盗版下载页已经消失，只留下一个新书签：\n\n《伟大航线打工人版：每日 1% 变强》。",
+      "effect": "fadein",
+      "speed": 28
+    },
+    {
+      "text": "你笑着点开，桌面角落跳出小派的提示：\n\n“今日任务：准时吃饭，认真划水，别把理想只放在明天。”",
+      "speaker": "小派",
+      "effect": "typewriter",
+      "speed": 60,
+      "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_小派_cheerful.png"
+    },
+    {
+      "text": "窗外阳光正好，旧码头传来汽笛。你把背包一甩，朝门外走去。\n\n这次你知道，冒险不一定很燃，但可以很真，很好笑，也很日常。",
+      "effect": "fadein",
+      "speed": 26
+    }
+  ]
+}
