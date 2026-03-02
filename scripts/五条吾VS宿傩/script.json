@@ -1,4 +1,4 @@
-{
+﻿{
   "title": "五条吾VS宿傩",
   "description": "长篇高压对战叙事：最强术师与古代灾厄之王的终局博弈。",
   "shared": {
@@ -114,201 +114,201 @@
     "character_refs": [
       {
         "name": "凛白",
-        "image": "docs/scenes/五条吾VS宿傩/char_ref_凛白_sheet_v1.png"
+        "image": "assets/char_ref_凛白_sheet_v1.png"
       },
       {
         "name": "朽阎",
-        "image": "docs/scenes/五条吾VS宿傩/char_ref_朽阎_sheet_v1.png"
+        "image": "assets/char_ref_朽阎_sheet_v1.png"
       },
       {
         "name": "夜渡",
-        "image": "docs/scenes/五条吾VS宿傩/char_ref_夜渡_sheet_v1.png"
+        "image": "assets/char_ref_夜渡_sheet_v1.png"
       },
       {
         "name": "岚绮",
-        "image": "docs/scenes/五条吾VS宿傩/char_ref_岚绮_sheet_v1.png"
+        "image": "assets/char_ref_岚绮_sheet_v1.png"
       }
     ],
     "asset_manifest": [
       {
         "segment_id": "0",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png"
+        "background_image": "assets/scene_battlefield_night.png",
+        "character_image": "assets/char_夜渡_observe.png"
       },
       {
         "segment_id": "1",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_岚绮_command.png"
+        "background_image": "assets/scene_battlefield_night.png",
+        "character_image": "assets/char_岚绮_command.png"
       },
       {
         "segment_id": "2",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png"
+        "background_image": "assets/scene_battlefield_night.png",
+        "character_image": "assets/char_凛白_calm.png"
       },
       {
         "segment_id": "3",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png"
+        "background_image": "assets/scene_battlefield_night.png",
+        "character_image": "assets/char_朽阎_dominant.png"
       },
       {
         "segment_id": "4",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png"
+        "background_image": "assets/scene_battlefield_night.png",
+        "character_image": "assets/char_夜渡_observe.png"
       },
       {
         "segment_id": "5",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png"
+        "background_image": "assets/scene_battlefield_night.png",
+        "character_image": "assets/char_凛白_calm.png"
       },
       {
         "segment_id": "6",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png"
+        "background_image": "assets/scene_battlefield_night.png",
+        "character_image": "assets/char_朽阎_dominant.png"
       },
       {
         "segment_id": "7",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png"
+        "background_image": "assets/scene_battlefield_night.png",
+        "character_image": "assets/char_夜渡_observe.png"
       },
       {
         "segment_id": "8",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_岚绮_command.png"
+        "background_image": "assets/scene_battlefield_night.png",
+        "character_image": "assets/char_岚绮_command.png"
       },
       {
         "segment_id": "9",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png"
+        "background_image": "assets/scene_battlefield_night.png",
+        "character_image": "assets/char_朽阎_dominant.png"
       },
       {
         "segment_id": "10",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png"
+        "background_image": "assets/scene_battlefield_night.png",
+        "character_image": "assets/char_夜渡_observe.png"
       },
       {
         "segment_id": "11",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png"
+        "background_image": "assets/scene_battlefield_night.png",
+        "character_image": "assets/char_凛白_calm.png"
       },
       {
         "segment_id": "12",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_夜渡_observe.png"
       },
       {
         "segment_id": "13",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_朽阎_dominant.png"
       },
       {
         "segment_id": "14",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_岚绮_command.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_岚绮_command.png"
       },
       {
         "segment_id": "15",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_凛白_calm.png"
       },
       {
         "segment_id": "16",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_夜渡_observe.png"
       },
       {
         "segment_id": "17",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_朽阎_dominant.png"
       },
       {
         "segment_id": "18",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_夜渡_observe.png"
       },
       {
         "segment_id": "19",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_凛白_calm.png"
       },
       {
         "segment_id": "20",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_朽阎_dominant.png"
       },
       {
         "segment_id": "21",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_夜渡_observe.png"
       },
       {
         "segment_id": "22",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_岚绮_command.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_岚绮_command.png"
       },
       {
         "segment_id": "23",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_凛白_calm.png"
       },
       {
         "segment_id": "24",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_朽阎_dominant.png"
       },
       {
         "segment_id": "25",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_夜渡_observe.png"
       },
       {
         "segment_id": "26",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_岚绮_command.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_岚绮_command.png"
       },
       {
         "segment_id": "27",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_朽阎_dominant.png"
       },
       {
         "segment_id": "28",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_凛白_calm.png"
       },
       {
         "segment_id": "29",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_夜渡_observe.png"
       },
       {
         "segment_id": "30",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_朽阎_dominant.png"
       },
       {
         "segment_id": "31",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png"
+        "background_image": "assets/scene_domain_collision.png",
+        "character_image": "assets/char_凛白_calm.png"
       },
       {
         "segment_id": "32",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_aftermath_dawn.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png"
+        "background_image": "assets/scene_aftermath_dawn.png",
+        "character_image": "assets/char_夜渡_observe.png"
       },
       {
         "segment_id": "33",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_aftermath_dawn.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_岚绮_command.png"
+        "background_image": "assets/scene_aftermath_dawn.png",
+        "character_image": "assets/char_岚绮_command.png"
       },
       {
         "segment_id": "34",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_aftermath_dawn.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png"
+        "background_image": "assets/scene_aftermath_dawn.png",
+        "character_image": "assets/char_凛白_calm.png"
       },
       {
         "segment_id": "35",
-        "background_image": "docs/scenes/五条吾VS宿傩/scene_aftermath_dawn.png",
-        "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png"
+        "background_image": "assets/scene_aftermath_dawn.png",
+        "character_image": "assets/char_夜渡_observe.png"
       }
     ]
   },
@@ -321,9 +321,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png",
+      "character_image": "assets/char_夜渡_observe.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png"
+        "image": "assets/scene_battlefield_night.png"
       }
     },
     {
@@ -334,9 +334,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_岚绮_command.png",
+      "character_image": "assets/char_岚绮_command.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png"
+        "image": "assets/scene_battlefield_night.png"
       }
     },
     {
@@ -347,9 +347,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png",
+      "character_image": "assets/char_凛白_calm.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png"
+        "image": "assets/scene_battlefield_night.png"
       }
     },
     {
@@ -360,9 +360,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png",
+      "character_image": "assets/char_朽阎_dominant.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png"
+        "image": "assets/scene_battlefield_night.png"
       }
     },
     {
@@ -373,9 +373,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png",
+      "character_image": "assets/char_夜渡_observe.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png"
+        "image": "assets/scene_battlefield_night.png"
       }
     },
     {
@@ -386,9 +386,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png",
+      "character_image": "assets/char_凛白_calm.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png"
+        "image": "assets/scene_battlefield_night.png"
       }
     },
     {
@@ -399,9 +399,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png",
+      "character_image": "assets/char_朽阎_dominant.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png"
+        "image": "assets/scene_battlefield_night.png"
       }
     },
     {
@@ -412,9 +412,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png",
+      "character_image": "assets/char_夜渡_observe.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png"
+        "image": "assets/scene_battlefield_night.png"
       }
     },
     {
@@ -425,9 +425,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_岚绮_command.png",
+      "character_image": "assets/char_岚绮_command.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png"
+        "image": "assets/scene_battlefield_night.png"
       }
     },
     {
@@ -438,9 +438,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png",
+      "character_image": "assets/char_朽阎_dominant.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png"
+        "image": "assets/scene_battlefield_night.png"
       }
     },
     {
@@ -451,9 +451,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png",
+      "character_image": "assets/char_夜渡_observe.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png"
+        "image": "assets/scene_battlefield_night.png"
       }
     },
     {
@@ -464,9 +464,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png",
+      "character_image": "assets/char_凛白_calm.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_battlefield_night.png"
+        "image": "assets/scene_battlefield_night.png"
       }
     },
     {
@@ -477,9 +477,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png",
+      "character_image": "assets/char_夜渡_observe.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
+        "image": "assets/scene_domain_collision.png",
         "effects": [
           "fade"
         ],
@@ -494,9 +494,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png",
+      "character_image": "assets/char_朽阎_dominant.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -507,9 +507,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_岚绮_command.png",
+      "character_image": "assets/char_岚绮_command.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -520,9 +520,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png",
+      "character_image": "assets/char_凛白_calm.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -533,9 +533,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png",
+      "character_image": "assets/char_夜渡_observe.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -546,9 +546,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png",
+      "character_image": "assets/char_朽阎_dominant.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -559,9 +559,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png",
+      "character_image": "assets/char_夜渡_observe.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
+        "image": "assets/scene_domain_collision.png",
         "effects": [
           "shake"
         ],
@@ -574,9 +574,9 @@
       "text": "你终于不躲在术式后面了。",
       "effect": "typewriter",
       "speed": 55,
-      "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png",
+      "character_image": "assets/char_凛白_calm.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -584,9 +584,9 @@
       "text": "真正的杀意，从来不分远近。",
       "effect": "typewriter",
       "speed": 55,
-      "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png",
+      "character_image": "assets/char_朽阎_dominant.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -597,9 +597,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png",
+      "character_image": "assets/char_夜渡_observe.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -610,9 +610,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_岚绮_command.png",
+      "character_image": "assets/char_岚绮_command.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -623,9 +623,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png",
+      "character_image": "assets/char_凛白_calm.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -636,9 +636,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png",
+      "character_image": "assets/char_朽阎_dominant.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -649,9 +649,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png",
+      "character_image": "assets/char_夜渡_observe.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -662,9 +662,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_岚绮_command.png",
+      "character_image": "assets/char_岚绮_command.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -675,9 +675,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png",
+      "character_image": "assets/char_朽阎_dominant.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -688,9 +688,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png",
+      "character_image": "assets/char_凛白_calm.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -701,9 +701,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png",
+      "character_image": "assets/char_夜渡_observe.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png",
+        "image": "assets/scene_domain_collision.png",
         "effects": [
           "shake"
         ],
@@ -719,9 +719,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_朽阎_dominant.png",
+      "character_image": "assets/char_朽阎_dominant.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -732,9 +732,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png",
+      "character_image": "assets/char_凛白_calm.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_domain_collision.png"
+        "image": "assets/scene_domain_collision.png"
       }
     },
     {
@@ -745,9 +745,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png",
+      "character_image": "assets/char_夜渡_observe.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_aftermath_dawn.png",
+        "image": "assets/scene_aftermath_dawn.png",
         "effects": [
           "fade",
           "shake"
@@ -765,9 +765,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_岚绮_command.png",
+      "character_image": "assets/char_岚绮_command.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_aftermath_dawn.png"
+        "image": "assets/scene_aftermath_dawn.png"
       }
     },
     {
@@ -778,9 +778,9 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_凛白_calm.png",
+      "character_image": "assets/char_凛白_calm.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_aftermath_dawn.png"
+        "image": "assets/scene_aftermath_dawn.png"
       }
     },
     {
@@ -791,10 +791,11 @@
       "display_break_lines": [
         1
       ],
-      "character_image": "docs/scenes/五条吾VS宿傩/char_夜渡_observe.png",
+      "character_image": "assets/char_夜渡_observe.png",
       "background": {
-        "image": "docs/scenes/五条吾VS宿傩/scene_aftermath_dawn.png"
+        "image": "assets/scene_aftermath_dawn.png"
       }
     }
   ]
 }
+

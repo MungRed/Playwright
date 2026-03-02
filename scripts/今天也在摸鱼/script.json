@@ -1,4 +1,4 @@
-{
+﻿{
   "title": "今天也在摸鱼",
   "description": "一篇都市职场视觉小说：在截止日期与奶茶优惠之间，主角学会把节奏握回自己手里。",
   "segments": [
@@ -10,9 +10,9 @@
       "speaker": "旁白",
       "effect": "typewriter",
       "speed": 55,
-      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_你_calm_v2.png",
+      "character_image": "assets/jtr_char_你_calm_v2.png",
       "background": {
-        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png",
+        "image": "assets/jtr_scene_office_day_v2.png",
         "effects": [
           "fade"
         ],
@@ -27,9 +27,9 @@
       "speaker": "阿秋",
       "effect": "typewriter",
       "speed": 55,
-      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_阿秋_happy_v2.png",
+      "character_image": "assets/jtr_char_阿秋_happy_v2.png",
       "background": {
-        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png"
+        "image": "assets/jtr_scene_office_day_v2.png"
       }
     },
     {
@@ -40,9 +40,9 @@
       "speaker": "旁白",
       "effect": "typewriter",
       "speed": 55,
-      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_阿秋_happy_v2.png",
+      "character_image": "assets/jtr_char_阿秋_happy_v2.png",
       "background": {
-        "image": "docs/scenes/今天也在摸鱼/jtr_scene_tea_shop_noon_v2.png",
+        "image": "assets/jtr_scene_tea_shop_noon_v2.png",
         "effects": [
           "fade"
         ],
@@ -57,9 +57,9 @@
       "speaker": "经理",
       "effect": "typewriter",
       "speed": 55,
-      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_经理_serious_v2.png",
+      "character_image": "assets/jtr_char_经理_serious_v2.png",
       "background": {
-        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png"
+        "image": "assets/jtr_scene_office_day_v2.png"
       }
     },
     {
@@ -70,9 +70,9 @@
       "speaker": "旁白",
       "effect": "shake",
       "speed": 18,
-      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_你_calm_v2.png",
+      "character_image": "assets/jtr_char_你_calm_v2.png",
       "background": {
-        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png",
+        "image": "assets/jtr_scene_office_day_v2.png",
         "effects": [
           "shake"
         ],
@@ -88,9 +88,9 @@
       "speaker": "旁白",
       "effect": "typewriter",
       "speed": 55,
-      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_你_calm_v2.png",
+      "character_image": "assets/jtr_char_你_calm_v2.png",
       "background": {
-        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png"
+        "image": "assets/jtr_scene_office_day_v2.png"
       }
     },
     {
@@ -101,9 +101,9 @@
       "speaker": "你",
       "effect": "typewriter",
       "speed": 55,
-      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_你_calm_v2.png",
+      "character_image": "assets/jtr_char_你_calm_v2.png",
       "background": {
-        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png"
+        "image": "assets/jtr_scene_office_day_v2.png"
       }
     },
     {
@@ -114,10 +114,11 @@
       "speaker": "旁白",
       "effect": "typewriter",
       "speed": 55,
-      "character_image": "docs/scenes/今天也在摸鱼/jtr_char_阿秋_happy_v2.png",
+      "character_image": "assets/jtr_char_阿秋_happy_v2.png",
       "background": {
-        "image": "docs/scenes/今天也在摸鱼/jtr_scene_office_day_v2.png"
+        "image": "assets/jtr_scene_office_day_v2.png"
       }
     }
   ]
 }
+

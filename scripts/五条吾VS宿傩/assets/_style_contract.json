@@ -1,0 +1,8 @@
+{
+  "character_style_anchor": "anime visual novel character illustration, clean lineart, cel shading, stable character design, consistent color palette",
+  "character_negative_anchor": "低质量, 模糊, 水印, 文本, logo, 畸形, 多余肢体",
+  "updated_at": "2026-03-02T19:29:23",
+  "last_scene_type": "character",
+  "background_style_anchor": "anime visual novel background, clean lineart, soft global illumination, cinematic composition, consistent color grading",
+  "background_negative_anchor": "低质量, 模糊, 水印, 文本, logo, 畸形, 多余肢体"
+}

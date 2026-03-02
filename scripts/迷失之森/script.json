@@ -1,4 +1,4 @@
-{
+﻿{
   "title": "迷失之森",
   "description": "一篇奇幻视觉小说：旅行者在夜色森林中迷失，最终抵达迷途者的庇护所。",
   "segments": [
@@ -11,7 +11,7 @@
       "speed": 55,
       "speaker": "旁白",
       "background": {
-        "image": "docs/scenes/迷失之森/forest_night_test.png",
+        "image": "assets/forest_night_test.png",
         "effects": [
           "fade"
         ],
@@ -44,7 +44,7 @@
       "speed": 15,
       "speaker": "未知声音",
       "background": {
-        "image": "docs/scenes/迷失之森/forest_night_test.png",
+        "image": "assets/forest_night_test.png",
         "effects": [
           "shake"
         ],
@@ -108,3 +108,4 @@
     }
   ]
 }
+

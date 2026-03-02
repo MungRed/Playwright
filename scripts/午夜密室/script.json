@@ -1,4 +1,4 @@
-{
+﻿{
   "title": "午夜密室",
   "description": "一篇悬疑视觉小说：侦探沿着夜色中的碎片线索，逐步逼近庄园地下室的真相。",
   "segments": [
@@ -10,9 +10,9 @@
       "effect": "typewriter",
       "speed": 55,
       "speaker": "侦探",
-      "character_image": "docs/scenes/午夜密室/test_character_detective.png",
+      "character_image": "assets/test_character_detective.png",
       "background": {
-        "image": "docs/scenes/午夜密室/midnight_corridor_test.png",
+        "image": "assets/midnight_corridor_test.png",
         "effects": [
           "fade"
         ],
@@ -27,7 +27,7 @@
       "effect": "typewriter",
       "speed": 55,
       "speaker": "侦探",
-      "character_image": "docs/scenes/午夜密室/test_character_detective.png"
+      "character_image": "assets/test_character_detective.png"
     },
     {
       "text": "你顺着泥脚印绕到侧门，草丛里忽然有黑影掠过。\n\n你压低脚步跟上去，最终在花坛旁看见一位神色慌张的老人。",
@@ -38,7 +38,7 @@
       "speed": 17,
       "speaker": "神秘人影",
       "background": {
-        "image": "docs/scenes/午夜密室/midnight_corridor_test.png",
+        "image": "assets/midnight_corridor_test.png",
         "effects": [
           "shake"
         ],
@@ -114,3 +114,4 @@
     }
   ]
 }
+
