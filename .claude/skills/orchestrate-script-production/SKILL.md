@@ -73,11 +73,13 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
    - 大纲来源模式：`ai_auto` 或 `user_keywords`
    - 若为 `user_keywords`，收集关键词包（世界观 / 人设 / 大纲）
 
-2. 阶段化执行（逐步确认）：
+2. 阶段化执行（默认自动连续执行，不逐步询问）：
    - 阶段1（需求澄清与方案）：通过对话补齐缺失信息，先确认大纲来源模式（AI 自动或用户关键词），调用 `create-script` 并写入 `shared.planning`（明确传入“原创创作，不参考其他剧本正文”约束）
    - 阶段2（文本剧本）：调用 `create-script` 生成基础剧本，再调用 `configure-script-presentation` 添加 `effect`/`speed`/`display_break_lines`，并更新 `shared.pipeline_state`（其中 `typewriter` 速度固定为 `55`；文本阶段保持原创约束）
+   - 阶段2结束后必须执行一致性校验：`title` 应与剧本文件名（不含 `.json`）一致；不一致则自动修正为文件名
    - 阶段3（人物设定图）：调用 `generate-character-images` 按 `shared.planning.characters` 产出设定图并写入 `shared.character_refs`
    - 阶段4（场景资产与回写）：调用 `generate-scene-assets` 基于 `shared` 生成 `shared.asset_manifest`，再调用 `attach-script-assets` 回写到剧本
+   - 仅当任一阶段失败或关键参数缺失时，再询问用户意见；其余场景默认自动继续执行
 
 3. 阶段4降调用策略（必须执行）：
    - 先按“地点+时间+氛围”聚合段落，同类段落复用同一背景图
@@ -246,7 +248,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
 - 阶段1必须先对话澄清，不得在关键信息缺失时直接进入生图。
 - 用户选择 `user_keywords` 时，阶段1必须先收齐关键词再进入文本创作；关键词不足则先补问。
 - 阶段2产物不得包含 `background.image` / `character_image`。
-- 任一阶段失败时，停止后续阶段并输出最小可恢复建议。
+- 任一阶段失败时，停止后续阶段并输出最小可恢复建议，再询问用户是否重试/跳过/终止。
 - 阶段4默认优先复用，目标是减少不必要 API 调用。
 - 若图生图接口仅接受 URL 参考图，应先确保参考图可被接口访问后再执行立绘生成。
 - 任一子 skill 执行前，必须先读取脚本 `shared`；执行后必须写回本阶段新增字段并保留已有字段。
