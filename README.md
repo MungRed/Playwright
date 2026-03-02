@@ -13,12 +13,11 @@
 - **文字演出效果**：支持两种内置效果
   - `typewriter` — 打字机逐字输出
   - `shake` — 文字震动（适合惊险场景）
-- **左侧 Tab 工具栏**：通过 Tab 切换“剧本/操作/帮助”界面
+- **左侧进度栏**：显示线性进度与当前段落编号
 - **背景图层**：段落可配置背景图，支持渐变切换与震动
-- **右侧人物栏**：显示当前说话人物与立绘（可由脚本指定）
+- **右侧人物栏**：显示人物立绘与操作提示（可由脚本指定）
 - **自适应窗口模式**：主菜单默认 `1280x720`；进入阅读后自动向左右扩展侧栏，窗口可自由缩放
 - **文字可读性增强**：剧情文字采用黑色描边渲染，保留完整背景画面
-- **剧本 Tab 可视化**：可查看当前剧本进度与段落去向映射
 - **跳过动画**：按空格键可跳过当前动画，直接显示完整文本
 - **返回菜单**：按 ESC 键随时返回主菜单
 
@@ -29,6 +28,17 @@
 - Python 3.10+
 - pygame
 
+### 版本约束（建议）
+
+- Python：`>=3.10`（推荐 `3.10 ~ 3.12`）
+- 运行时：`pygame`（最新稳定版）
+- MCP/生图相关依赖（来自 `.mcp/requirements.txt`）：
+  - `mcp>=1.0.0`
+  - `httpx>=0.27.0`
+  - `Pillow>=10.0.0`
+  - `tencentcloud-sdk-python>=3.0.1200`
+  - `cos-python-sdk-v5>=1.9.37`
+
 ---
 
 ## 快速开始
@@ -38,10 +48,24 @@ pip install pygame
 python main.py
 ```
 
+---
+
+## 迁移说明（pygame-only）
+
+- 当前主流程已统一为 `pygame`，入口为 `main.py -> engine/pygame_app.py`。
+- 旧版 `tkinter` 阅读器模块已移除，不再作为运行路径。
+- 主菜单窗口固定 `1280x720`；进入阅读后扩展为“左栏 + 中间阅读区 + 右栏”。
+- Windows 下菜单与阅读页切换时会尽量保持窗口中心位置。
+
 ## 开发文档
 
 - 开发指南：`docs/DEVELOPMENT.md`
 - 约定：Agent 修改代码时会同步维护该文档
+
+### 文档维护规则
+
+- 变更记录维护：`docs/DEVELOPMENT.md` 采用“最近 N 条 + 长期里程碑”结构（当前 `N=12`）
+- 超过 12 条时：最旧“最近条目”先评估长期价值；有长期价值迁移到“长期里程碑”，否则直接移除
 
 ### 本地环境自检与部署（推荐）
 
@@ -162,7 +186,7 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
 | `effect` | string | 演出效果，默认 `typewriter` |
 | `speed` | int | 动画速度（毫秒/帧），`typewriter` 固定 `55` |
 | `next` | string | 下一段落的 ID（可选，未提供时自动顺序推进） |
-| `speaker` | string | 当前段落说话人名称，显示在右侧人物栏 |
+| `speaker` | string | 可选：说话人元数据（当前 UI 不单独显示姓名） |
 | `character_image` | string | 当前段落人物图路径（相对项目根目录或绝对路径） |
 | `background` | object | 背景图配置对象（见下方） |
 
@@ -248,16 +272,8 @@ Playwright/
 │   ├── update-readme/                 # 自动同步更新 README
 │   └── git-push/                      # 暂存提交 Git 改动
 ├── engine/               # 引擎模块
-│   ├── config.py         # 颜色常量与脚本目录路径
-│   ├── utils.py          # 颜色插值等工具函数
-│   ├── effects.py        # 文字演出效果实现与注册表
-│   ├── text_render.py    # Canvas 描边文本渲染工具（创建/就地更新）
-│   ├── background_controller.py # 背景图控制（适配/渐变/震动）
-│   ├── character_panel.py # 右侧人物栏组件
-│   ├── menu.py           # 主菜单界面
-│   ├── sidebar_tabs.py   # 左侧 Tab 工具栏（剧本/操作/帮助）
-│   ├── game_frame.py     # 旧版 tkinter 阅读器实现（保留）
-│   └── pygame_app.py     # 新版 pygame 主流程（菜单+阅读器）
+│   ├── __init__.py
+│   └── pygame_app.py     # pygame 主流程（菜单+阅读器）
 ├── scripts/              # 游戏脚本目录
 │   ├── 迷失之森.json      # 线性示例：神秘森林冒险（11段）
 │   ├── 午夜密室.json      # 线性示例：推理悬疑故事
@@ -293,4 +309,14 @@ Playwright/
 
 1. 在 `scripts/` 目录下新建一个 `.json` 文件
 2. 按照上方脚本格式编写
-3. 重新启动 `main.py`（pygame 版本），主菜单中将自动出现新游戏
+3. 重新启动 `main.py`，主菜单中将自动出现新游戏
+
+---
+
+## 常见问题排障
+
+- 启动报错 `No module named pygame`：先执行 `pip install pygame`，再运行 `python main.py`。
+- 运行脚本后黑屏/无文本：检查脚本是否包含 `segments` 数组与 `text` 字段。
+- 背景或立绘不显示：优先使用相对项目根目录的路径（如 `docs/scenes/迷失之森/scene_xxx.png`）。
+- 生图调用失败：检查 `.vscode/mcp.json` 中腾讯云与 COS 相关配置是否完整。
+- 环境初始化失败：运行 `python scripts/bootstrap_env.py --check-only` 查看失败项，再按提示修复。
