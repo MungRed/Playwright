@@ -11,6 +11,12 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
 3) 基于阶段1结果生成人物设定图
 4) 重新阅读剧本后生成背景图与人物立绘，并回写到剧本
 
+## 原创约束（必须遵守）
+
+- 阶段1/阶段2属于文本创作阶段，禁止将项目中已有剧本正文（`scripts/*.json`）作为创意来源。
+- 编排时仅允许子 skill 读取“当前目标剧本文件”用于续写或修订，不得读取其他剧本进行模仿、拼接或改写。
+- 若用户要求参考现有剧本风格，必须改为抽象题材方向描述（如“悬疑/校园/奇幻”），不得复用现有人物设定、专有名词、关键桥段。
+
 ## 共享数据协议（必须遵守）
 
 所有子 skill 必须共享同一份脚本内数据源：`scripts/<script_name>.json` 顶层 `shared`。
@@ -60,8 +66,8 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
    - 偏好类型：视觉小说（线性叙事）
 
 2. 阶段化执行（逐步确认）：
-   - 阶段1（需求澄清与方案）：通过对话补齐缺失信息，调用 `create-script` 并写入 `shared.planning`
-   - 阶段2（文本剧本）：调用 `create-script` 生成基础剧本，再调用 `configure-script-presentation` 添加 `effect`/`speed`/`display_break_lines`，并更新 `shared.pipeline_state`（其中 `typewriter` 速度固定为 `55`）
+   - 阶段1（需求澄清与方案）：通过对话补齐缺失信息，调用 `create-script` 并写入 `shared.planning`（明确传入“原创创作，不参考其他剧本正文”约束）
+   - 阶段2（文本剧本）：调用 `create-script` 生成基础剧本，再调用 `configure-script-presentation` 添加 `effect`/`speed`/`display_break_lines`，并更新 `shared.pipeline_state`（其中 `typewriter` 速度固定为 `55`；文本阶段保持原创约束）
    - 阶段3（人物设定图）：调用 `generate-character-images` 按 `shared.planning.characters` 产出设定图并写入 `shared.character_refs`
    - 阶段4（场景资产与回写）：调用 `generate-scene-assets` 基于 `shared` 生成 `shared.asset_manifest`，再调用 `attach-script-assets` 回写到剧本
 
@@ -191,6 +197,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
    - 文本剧本路径（含演出效果）
    - 人物设定图路径列表
    - 资产生成/复用统计与最终剧本路径
+   - 原创性检查结果（阶段1/2未参考项目内其他剧本正文）
 
 ## 模型编排约束
 
