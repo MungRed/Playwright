@@ -58,6 +58,7 @@ class PygameVNApp:
 
         self.scripts = self._load_scripts()
         self.menu_rects: list[tuple[pygame.Rect, ScriptMeta]] = []
+        self.menu_scroll = 0
         self.current_script_dir = SCRIPTS_DIR
 
         self.segments: dict[str, dict] = {}
@@ -209,6 +210,10 @@ class PygameVNApp:
                 if self.mode == "menu":
                     if event.key == pygame.K_ESCAPE:
                         self.running = False
+                    elif event.key == pygame.K_UP:
+                        self._scroll_menu(-1)
+                    elif event.key == pygame.K_DOWN:
+                        self._scroll_menu(1)
                 else:
                     if event.key == pygame.K_ESCAPE:
                         self._back_to_menu()
@@ -216,10 +221,17 @@ class PygameVNApp:
                         self._advance()
                     elif event.key == pygame.K_BACKSPACE:
                         self._go_back()
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            elif event.type == pygame.MOUSEWHEEL and self.mode == "menu":
+                self._scroll_menu(-event.y)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
                 if self.mode == "menu":
-                    self._menu_click(event.pos)
-                else:
+                    if event.button == 1:
+                        self._menu_click(event.pos)
+                    elif event.button == 4:
+                        self._scroll_menu(-1)
+                    elif event.button == 5:
+                        self._scroll_menu(1)
+                elif event.button == 1:
                     self._advance()
 
     def _update(self, now: int):
@@ -245,9 +257,18 @@ class PygameVNApp:
         panel = pygame.Rect(140, 170, w - 280, h - 250)
         pygame.draw.rect(self.screen, BG_DARK, panel, border_radius=14)
 
+        visible_count = self._menu_visible_count(panel)
+        max_scroll = max(0, len(self.scripts) - visible_count)
+        self.menu_scroll = max(0, min(self.menu_scroll, max_scroll))
+
         y = panel.top + 24
-        for item in self.scripts:
-            card = pygame.Rect(panel.left + 24, y, panel.width - 48, 74)
+        list_left = panel.left + 24
+        list_width = panel.width - 58
+        if len(self.scripts) > visible_count:
+            list_width -= 10
+
+        for item in self.scripts[self.menu_scroll : self.menu_scroll + visible_count]:
+            card = pygame.Rect(list_left, y, list_width, 74)
             hover = card.collidepoint(pygame.mouse.get_pos())
             pygame.draw.rect(self.screen, BG_HOVER if hover else BG_CARD, card, border_radius=10)
 
@@ -259,11 +280,32 @@ class PygameVNApp:
 
             self.menu_rects.append((card, item))
             y += 86
-            if y + 74 > panel.bottom - 8:
-                break
 
-        tip = self.font_small.render("ESC 退出", True, FG_DIM)
+        if len(self.scripts) > visible_count:
+            track = pygame.Rect(panel.right - 20, panel.top + 24, 6, panel.height - 32)
+            pygame.draw.rect(self.screen, (52, 52, 78), track, border_radius=4)
+            thumb_h = max(32, int(track.height * (visible_count / len(self.scripts))))
+            travel = max(0, track.height - thumb_h)
+            ratio = self.menu_scroll / max(1, max_scroll)
+            thumb_y = track.top + int(travel * ratio)
+            thumb = pygame.Rect(track.left, thumb_y, track.width, thumb_h)
+            pygame.draw.rect(self.screen, (110, 110, 146), thumb, border_radius=4)
+
+        tip = self.font_small.render("滚轮/↑↓滚动  ·  ESC 退出", True, FG_DIM)
         self.screen.blit(tip, (w - tip.get_width() - 20, h - 30))
+
+    @staticmethod
+    def _menu_visible_count(panel: pygame.Rect) -> int:
+        available_height = panel.height - 32
+        return max(1, (available_height + 12) // 86)
+
+    def _scroll_menu(self, delta: int):
+        if delta == 0:
+            return
+        panel = pygame.Rect(140, 170, self.screen.get_width() - 280, self.screen.get_height() - 250)
+        visible_count = self._menu_visible_count(panel)
+        max_scroll = max(0, len(self.scripts) - visible_count)
+        self.menu_scroll = max(0, min(self.menu_scroll + delta, max_scroll))
 
     def _menu_click(self, pos: tuple[int, int]):
         for rect, item in self.menu_rects:
@@ -327,6 +369,7 @@ class PygameVNApp:
         self.animating = False
         self.current_script_dir = SCRIPTS_DIR
         self.scripts = self._load_scripts()
+        self.menu_scroll = 0
         self.screen = self._set_window_size(MENU_WIDTH, MENU_HEIGHT, preserve_center=True)
         self.scaled_image_cache.clear()
         self.portrait_scaled_cache.clear()
