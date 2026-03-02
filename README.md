@@ -1,6 +1,6 @@
 # 剧本阅读器
 
-基于 Python + tkinter 实现的本地剧本阅读器，支持多种文字演出效果，脚本以 JSON 格式编写，开箱即用。
+基于 Python + pygame 实现的本地剧本阅读器，支持多种文字演出效果，脚本以 JSON 格式编写，开箱即用。
 
 ---
 
@@ -27,13 +27,14 @@
 ## 环境要求
 
 - Python 3.10+
-- tkinter（Python 标准库，通常无需额外安装）
+- pygame
 
 ---
 
 ## 快速开始
 
 ```bash
+pip install pygame
 python main.py
 ```
 
@@ -138,7 +139,7 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
     {
       "text": "段落文字内容，支持 \\n 换行",
       "effect": "typewriter",
-      "speed": 30
+      "speed": 55
     },
     {
       "text": "下一段文字",
@@ -159,7 +160,7 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
 | `text` | string | 段落文字，`\n` 换行 |
 | `display_break_lines` | array[int] | 可选：同段分步断点（按原文行号断开，避免重复文本） |
 | `effect` | string | 演出效果，默认 `typewriter` |
-| `speed` | int | 动画速度（毫秒/帧），默认 `30` |
+| `speed` | int | 动画速度（毫秒/帧），`typewriter` 固定 `55` |
 | `next` | string | 下一段落的 ID（可选，未提供时自动顺序推进） |
 | `speaker` | string | 当前段落说话人名称，显示在右侧人物栏 |
 | `character_image` | string | 当前段落人物图路径（相对项目根目录或绝对路径） |
@@ -215,7 +216,7 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
 
 | effect | 效果 | 推荐 speed | 适用场景 |
 |--------|------|-----------|----------|
-| `typewriter` | 打字机逐字 | 50–80 | 对话、独白 |
+| `typewriter` | 打字机逐字 | 55（固定） | 通用文本 |
 | `shake` | 震动（红色） | 15–20 | 危险、惊吓 |
 
 ---
@@ -234,7 +235,7 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
 
 ```
 Playwright/
-├── main.py               # 入口：窗口初始化与页面切换
+├── main.py               # 入口：pygame 应用启动
 ├── .claude/skills/       # Copilot Skills
 │   ├── create-script/                 # 世界观/人设/剧本文本（纯文本）
 │   ├── configure-script-presentation/ # 剧本表现字段配置
@@ -255,7 +256,8 @@ Playwright/
 │   ├── character_panel.py # 右侧人物栏组件
 │   ├── menu.py           # 主菜单界面
 │   ├── sidebar_tabs.py   # 左侧 Tab 工具栏（剧本/操作/帮助）
-│   └── game_frame.py     # 游戏界面（脚本加载、段落展示、交互逻辑）
+│   ├── game_frame.py     # 旧版 tkinter 阅读器实现（保留）
+│   └── pygame_app.py     # 新版 pygame 主流程（菜单+阅读器）
 ├── scripts/              # 游戏脚本目录
 │   ├── 迷失之森.json      # 线性示例：神秘森林冒险（11段）
 │   ├── 午夜密室.json      # 线性示例：推理悬疑故事
@@ -291,4 +293,4 @@ Playwright/
 
 1. 在 `scripts/` 目录下新建一个 `.json` 文件
 2. 按照上方脚本格式编写
-3. 重新启动 `main.py`，主菜单中将自动出现新游戏
+3. 重新启动 `main.py`（pygame 版本），主菜单中将自动出现新游戏

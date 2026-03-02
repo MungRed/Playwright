@@ -54,7 +54,7 @@
       "text": "周六凌晨，你抱着‘今天一定要集齐图鉴’的伟大理想，点开了一个名字很长、图标还会眨眼的游戏下载页面。",
       "speaker": "旁白",
       "effect": "typewriter",
-      "speed": 30,
+      "speed": 55,
       "background": {
         "image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/scene_room_night.png"
       }
@@ -70,7 +70,7 @@
     {
       "text": "你疯狂点关闭，结果弹窗自己长出小翅膀，绕着桌面飞了三圈，最后落成一个像客服头像的小人。",
       "effect": "typewriter",
-      "speed": 22
+      "speed": 55
     },
     {
       "text": "“你好，我叫小派，盗版渠道专属引导员。”\n\n“从今天起，你的训练家梦想自动转职为——见习海贼王。”",
@@ -79,7 +79,7 @@
       ],
       "speaker": "小派",
       "effect": "typewriter",
-      "speed": 62,
+      "speed": 55,
       "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_小派_cheerful.png"
     },
     {
@@ -89,7 +89,7 @@
       ],
       "speaker": "陆朝",
       "effect": "typewriter",
-      "speed": 58,
+      "speed": 55,
       "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_陆朝_panic.png",
       "background": {
         "image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/scene_city_street_night.png"
@@ -102,13 +102,13 @@
       ],
       "speaker": "小派",
       "effect": "typewriter",
-      "speed": 64,
+      "speed": 55,
       "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_小派_smug.png"
     },
     {
       "text": "下一秒，你的手机导航被强制改版。平日的地铁线变成了‘浅海航道’，小区门口便利店被标记为‘新手补给港’。",
       "effect": "typewriter",
-      "speed": 31
+      "speed": 55
     },
     {
       "text": "系统任务跳出：\n\n【请在 30 分钟内前往旧码头，领取你的第一艘‘精神之船’。】\n\n你看了眼窗外，只有共享单车。",
@@ -116,12 +116,12 @@
         1
       ],
       "effect": "typewriter",
-      "speed": 23
+      "speed": 55
     },
     {
       "text": "你抱着怀疑人生的心态到了旧码头，结果在售票亭后面看到一辆贴着木纹贴纸的脚踏船。",
       "effect": "typewriter",
-      "speed": 29,
+      "speed": 55,
       "background": {
         "image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/scene_old_dock_day.png"
       }
@@ -133,7 +133,7 @@
       ],
       "speaker": "柚子",
       "effect": "typewriter",
-      "speed": 61,
+      "speed": 55,
       "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_柚子_calm.png"
     },
     {
@@ -148,7 +148,7 @@
       ],
       "speaker": "小派",
       "effect": "typewriter",
-      "speed": 59,
+      "speed": 55,
       "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_小派_cheerful.png"
     },
     {
@@ -158,7 +158,7 @@
       ],
       "speaker": "柚子",
       "effect": "typewriter",
-      "speed": 57,
+      "speed": 55,
       "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_柚子_serious.png"
     },
     {
@@ -167,12 +167,12 @@
         1
       ],
       "effect": "typewriter",
-      "speed": 21
+      "speed": 55
     },
     {
       "text": "傍晚，你们驶向城北防波堤。海风很认真，夕阳很努力，只有你的方向感在请假。",
       "effect": "typewriter",
-      "speed": 30,
+      "speed": 55,
       "background": {
         "image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/scene_training_deck_sunset.png"
       }
@@ -188,7 +188,7 @@
     {
       "text": "转到第七圈时，你突然看见海面上漂着一个发光补给箱。打开后里面只有三样东西：雨衣、口哨、以及一本《社恐也能当船长》。",
       "effect": "typewriter",
-      "speed": 28
+      "speed": 55
     },
     {
       "text": "你翻开第一页，上面写着：\n\n“遇事先深呼吸，再把锅分给天气。”\n\n你觉得很有道理，立刻把刚才转圈解释为‘风向实验’。",
@@ -197,7 +197,7 @@
       ],
       "speaker": "陆朝",
       "effect": "typewriter",
-      "speed": 60,
+      "speed": 55,
       "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_陆朝_calm.png"
     },
     {
@@ -207,7 +207,7 @@
       ],
       "speaker": "黑胡椒店长",
       "effect": "typewriter",
-      "speed": 63,
+      "speed": 55,
       "background": {
         "image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/scene_night_market.png"
       }
@@ -218,7 +218,7 @@
         1
       ],
       "effect": "typewriter",
-      "speed": 22
+      "speed": 55
     },
     {
       "text": "第一枚“勇气徽章”来得很突然——一只海鸥叼走了你的饭团，你在全码头注视下追着海鸥跑了三百米。",
@@ -228,7 +228,7 @@
     {
       "text": "第二枚“导航徽章”更离谱。你误把直播带货船当成目标灯塔，结果被主播拉去讲了五分钟“新手如何优雅晕船”。",
       "effect": "typewriter",
-      "speed": 29
+      "speed": 55
     },
     {
       "text": "第三枚“找零徽章”则来自柚子的终极考核：\n\n“在夜市排队高峰中，精确找回 3 块 5，还要保持礼貌微笑。”",
@@ -237,13 +237,13 @@
       ],
       "speaker": "柚子",
       "effect": "typewriter",
-      "speed": 58,
+      "speed": 55,
       "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_柚子_serious.png"
     },
     {
       "text": "你完成得出奇顺利，甚至被旁边大爷夸了句“这孩子将来能当会计船长”。小派当场给你放了 0.8 秒庆祝烟花。",
       "effect": "typewriter",
-      "speed": 27
+      "speed": 55
     },
     {
       "text": "深夜返航时，海上起雾。《不加班号》在雾里像一块会漂浮的便当盒。柚子把舵递给你：\n\n“这段你来。”",
@@ -252,7 +252,7 @@
       ],
       "speaker": "柚子",
       "effect": "typewriter",
-      "speed": 20,
+      "speed": 55,
       "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_柚子_serious.png",
       "background": {
         "image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/scene_fog_sea_night.png"
@@ -261,7 +261,7 @@
     {
       "text": "你紧张得手心冒汗，脑子里却突然想起白天那句‘先系好鞋带’。你低头确认鞋带，抬头再看，前方浮标居然全对上了。",
       "effect": "typewriter",
-      "speed": 31,
+      "speed": 55,
       "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_陆朝_heroic.png"
     },
     {
@@ -271,7 +271,7 @@
       ],
       "speaker": "旁白",
       "effect": "typewriter",
-      "speed": 56,
+      "speed": 55,
       "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_柚子_happy.png"
     },
     {
@@ -280,7 +280,7 @@
         1
       ],
       "effect": "typewriter",
-      "speed": 30,
+      "speed": 55,
       "background": {
         "image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/scene_room_morning.png"
       }
@@ -289,7 +289,7 @@
       "text": "你看着最后一行，忽然没那么焦虑了。也许‘成为大师’不只一种路径，先把今天的船开稳，也算一种进化。",
       "speaker": "陆朝",
       "effect": "typewriter",
-      "speed": 21,
+      "speed": 55,
       "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_陆朝_heroic.png"
     },
     {
@@ -298,7 +298,7 @@
         1
       ],
       "effect": "typewriter",
-      "speed": 28
+      "speed": 55
     },
     {
       "text": "你笑着点开，桌面角落跳出小派的提示：\n\n“今日任务：准时吃饭，认真划水，别把理想只放在明天。”",
@@ -307,7 +307,7 @@
       ],
       "speaker": "小派",
       "effect": "typewriter",
-      "speed": 60,
+      "speed": 55,
       "character_image": "docs/scenes/梦想成为宝可梦大师的我因为下到盗版游戏被迫成为海贼王/char_小派_cheerful.png"
     },
     {
@@ -316,7 +316,7 @@
         1
       ],
       "effect": "typewriter",
-      "speed": 26
+      "speed": 55
     }
   ]
 }

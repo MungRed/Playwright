@@ -8,7 +8,7 @@
         1
       ],
       "effect": "typewriter",
-      "speed": 25,
+      "speed": 55,
       "speaker": "侦探",
       "character_image": "docs/scenes/午夜密室/test_character_detective.png",
       "background": {
@@ -25,7 +25,7 @@
         1
       ],
       "effect": "typewriter",
-      "speed": 56,
+      "speed": 55,
       "speaker": "侦探",
       "character_image": "docs/scenes/午夜密室/test_character_detective.png"
     },
@@ -52,7 +52,7 @@
         1
       ],
       "effect": "typewriter",
-      "speed": 60,
+      "speed": 55,
       "speaker": "老管家"
     },
     {
@@ -61,7 +61,7 @@
         1
       ],
       "effect": "typewriter",
-      "speed": 28
+      "speed": 55
     },
     {
       "text": "你在书架夹层找到保险箱，密码提示是\"生日快乐\"。\n\n结合手表时间与庄园建成年份，你输入 1947。\n\n箱门弹开，里面是一把地下室钥匙与一张平面图。",
@@ -69,7 +69,7 @@
         1
       ],
       "effect": "typewriter",
-      "speed": 22
+      "speed": 55
     },
     {
       "text": "书房桌上亮着一部手机，未读消息写着：\"地下室，快来，我是 Marcus。\"\n\n但抽屉里同时躺着一瓶迷药。\n\n你意识到，这里有人在引导你，也有人想让你闭嘴。",
@@ -85,7 +85,7 @@
         1
       ],
       "effect": "typewriter",
-      "speed": 26
+      "speed": 55
     },
     {
       "text": "地下室尽头，一名男子被铁链锁在柱子上。\n\n\"我是 Marcus。\"他抬起头，声音嘶哑，\"你终于来了。\"\n\n你把文件摊在他面前，他的目光一下子沉了下去。",
@@ -93,7 +93,7 @@
         1
       ],
       "effect": "typewriter",
-      "speed": 20,
+      "speed": 55,
       "speaker": "Marcus"
     },
     {
@@ -110,7 +110,7 @@
         1
       ],
       "effect": "typewriter",
-      "speed": 24
+      "speed": 55
     }
   ]
 }
