@@ -7,7 +7,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
 
 按固定流程调用子 skill，形成可落地的剧本生产流水线：
 1) 与用户对话澄清需求，产出人设、剧本大纲与基础形态（视觉小说线性叙事）
-2) 基于阶段1结果生成“仅文本+演出效果”的剧本（不含背景图与人物图路径）
+2) 基于阶段1结果先生成传统小说草稿并落盘，再转换为“仅文本+演出效果”的剧本（不含背景图与人物图路径）
 3) 基于阶段1结果生成人物设定图
 4) 重新阅读剧本后生成背景图与人物立绘，并回写到剧本
 
@@ -16,6 +16,8 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
 - 阶段1（规划）与阶段2（文本剧本）涉及文本创作时，必须通过混元生文 API 生成。
 - 统一调用 MCP 工具：`mcp_playwright-im_generate_text`（ChatCompletions）。
 - 禁止在未调用生文 API 的情况下直接产出完整规划文本或完整剧本正文。
+- 禁止要求生文 API 直接输出完整 `script.json`；生文阶段应输出传统文本草稿。
+- 生文草稿必须先落盘到本地目录，再由 agent 进行 JSON 转换。
 - 若生文 API 调用失败，应中断后续链路并询问用户“重试 / 降级 / 终止”。
 
 ## 原创约束（必须遵守）
@@ -45,6 +47,10 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
             "characters": ["关键词B"],
             "outline": ["关键词C"]
          }
+      },
+      "drafts": {
+         "planning_draft_path": "scripts/<script_name>/drafts/planning_draft.md",
+         "novel_draft_path": "scripts/<script_name>/drafts/novel_draft.md"
       },
       "style_contract": {
          "background_style_anchor": "anime visual novel background, clean lineart, soft global illumination, cinematic composition",
@@ -81,8 +87,8 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
    - 若为 `user_keywords`，收集关键词包（世界观 / 人设 / 大纲）
 
 2. 阶段化执行（默认自动连续执行，不逐步询问）：
-   - 阶段1（需求澄清与方案）：通过对话补齐缺失信息，先确认大纲来源模式（AI 自动或用户关键词），调用 `create-script` 并由其调用 `mcp_playwright-im_generate_text` 生成规划内容后写入 `shared.planning`（明确传入“原创创作，不参考其他剧本正文”约束）
-   - 阶段2（文本剧本）：调用 `create-script` 并由其调用 `mcp_playwright-im_generate_text` 生成基础剧本文本，再调用 `configure-script-presentation` 添加 `effect`/`speed`/`display_break_lines`，并更新 `shared.pipeline_state`（其中 `typewriter` 速度固定为 `55`；文本阶段保持原创约束）
+   - 阶段1（需求澄清与方案）：通过对话补齐缺失信息，先确认大纲来源模式（AI 自动或用户关键词），调用 `create-script` 并由其调用 `mcp_playwright-im_generate_text` 生成“规划草稿（传统文本）”，先落盘 `scripts/<script_name>/drafts/planning_draft.md`，再转换并写入 `shared.planning`（明确传入“原创创作，不参考其他剧本正文”约束）
+   - 阶段2（文本剧本）：调用 `create-script` 并由其调用 `mcp_playwright-im_generate_text` 生成“正文草稿（传统小说文本）”，先落盘 `scripts/<script_name>/drafts/novel_draft.md`，再由 agent 转换为基础剧本文本；随后调用 `configure-script-presentation` 添加 `effect`/`speed`/`display_break_lines`，并更新 `shared.pipeline_state`（其中 `typewriter` 速度固定为 `55`；文本阶段保持原创约束）
    - 阶段2结束后必须执行一致性校验：`title` 应与剧本文件名（不含 `.json`）一致；不一致则自动修正为文件名
    - 阶段3（人物设定图）：调用 `generate-character-images` 按 `shared.planning.characters` 产出设定图并写入 `shared.character_refs`
    - 阶段4（场景资产与回写）：调用 `generate-scene-assets` 基于 `shared` 生成 `shared.asset_manifest`，再调用 `attach-script-assets` 回写到剧本
@@ -153,6 +159,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
       }
    },
    "output": {
+      "novel_draft_path": "scripts/迷失之森/drafts/novel_draft.md",
       "script_path": "scripts/迷失之森/script.json",
       "includes_text": true,
       "includes_presentation": true,
@@ -219,6 +226,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
 4. 结果汇总：
    - 需求摘要（风格、篇幅、剧本形态）
    - 大纲来源（`ai_auto` / `user_keywords`）与关键词使用说明
+   - 草稿落盘路径（规划草稿、正文草稿）
    - 文本剧本路径（含演出效果）
    - 人物设定图路径列表
    - 资产生成/复用统计与最终剧本路径
@@ -254,6 +262,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
 - 编排 skill 只负责流程协调与阶段衔接；允许校验 `shared` 字段完整性，但不直接改写 `segments` 业务内容。
 - 阶段1必须先对话澄清，不得在关键信息缺失时直接进入生图。
 - 用户选择 `user_keywords` 时，阶段1必须先收齐关键词再进入文本创作；关键词不足则先补问。
+- 阶段1/2 的生文结果必须先保存到 `scripts/<script_name>/drafts/` 后再做 JSON 转换。
 - 阶段2产物不得包含 `background.image` / `character_image`。
 - 任一阶段失败时，停止后续阶段并输出最小可恢复建议，再询问用户是否重试/跳过/终止。
 - 阶段4默认优先复用，目标是减少不必要 API 调用。
