@@ -59,17 +59,15 @@ class ReaderSidebarTabs(tk.Frame):
                                            fg=FG_DIM, bg=BG_CARD, anchor="w", justify=tk.LEFT)
         self._current_seg_value.pack(fill=tk.X, pady=(4, 8))
 
-        tk.Label(frame, text="分支视图", font=("Microsoft YaHei", 10, "bold"),
+        tk.Label(frame, text="段落去向", font=("Microsoft YaHei", 10, "bold"),
                  fg=FG_MAIN, bg=BG_CARD).pack(anchor="w", pady=(2, 4))
 
         tree_wrap = tk.Frame(frame, bg=BG_CARD)
         tree_wrap.pack(fill=tk.BOTH, expand=True)
 
-        self._branch_tree = ttk.Treeview(tree_wrap, columns=("to", "kind"), show="headings", height=14)
+        self._branch_tree = ttk.Treeview(tree_wrap, columns=("to",), show="headings", height=14)
         self._branch_tree.heading("to", text="去向")
-        self._branch_tree.heading("kind", text="类型")
-        self._branch_tree.column("to", width=130, anchor="w")
-        self._branch_tree.column("kind", width=54, anchor="center")
+        self._branch_tree.column("to", width=190, anchor="w")
         self._branch_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         scroll = ttk.Scrollbar(tree_wrap, orient="vertical", command=self._branch_tree.yview)
@@ -110,8 +108,7 @@ class ReaderSidebarTabs(tk.Frame):
         frame = tk.Frame(parent, bg=BG_CARD)
         text = (
             "快捷键说明\n\n"
-            "空格 / 左键：下一段或跳过动画\n"
-            "1~9：选择分支\n"
+            "空格 / 左键：按配置追加显示 / 下一段 / 跳过当前步动画\n"
             "BackSpace：返回上一段\n"
             "ESC：返回主菜单"
         )
@@ -141,7 +138,6 @@ class ReaderSidebarTabs(tk.Frame):
             seg = segments.get(seg_id, {})
             targets = self._collect_targets(seg)
             target_text = ", ".join(targets) if targets else "END"
-            kind_text = "分支" if seg.get("choices") else "线性"
 
             prefix = ""
             tags = ()
@@ -154,7 +150,7 @@ class ReaderSidebarTabs(tk.Frame):
 
             iid = f"seg-{idx}"
             self._branch_tree.insert("", "end", iid=iid,
-                                     text="", values=(f"{prefix}{seg_id} → {target_text}", kind_text),
+                                     text="", values=(f"{prefix}{seg_id} → {target_text}",),
                                      tags=tags)
             if seg_id == current_id:
                 self._branch_tree.selection_set(iid)
@@ -162,10 +158,6 @@ class ReaderSidebarTabs(tk.Frame):
 
     def _collect_targets(self, seg: dict) -> list[str]:
         targets: list[str] = []
-        for choice in seg.get("choices", []):
-            nxt = choice.get("next")
-            if nxt is not None:
-                targets.append(str(nxt))
         if "next" in seg and seg.get("next") is not None:
             targets.append(str(seg.get("next")))
         seen = set()

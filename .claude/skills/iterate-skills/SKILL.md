@@ -31,7 +31,7 @@ description: 迭代优化当前仓库的所有 skill 文件；除准确性与 to
    - 生成“受影响 skill 列表”，仅对受影响 skill 执行更新，避免全量无差别改写
    - 触发映射（最低要求）：
        - 剧本文本结构/字段变化（世界观、人设、剧情文本）→ 必须检查并迭代 `create-script`
-       - 剧本演出规则变化（`effect`/`speed`/背景表现）→ 必须检查并迭代 `configure-script-presentation`
+      - 剧本演出规则变化（`effect`/`speed`/`display_break_lines`/背景表现）→ 必须检查并迭代 `configure-script-presentation`
        - 人物设定图生成流程变化 → 必须检查并迭代 `generate-character-images`
        - 背景图/立绘资产流程变化（含图生图策略）→ 必须检查并迭代 `generate-scene-assets`
          - 资源路径回写流程变化（`background.image` / `character_image`）→ 必须检查并迭代 `attach-script-assets`

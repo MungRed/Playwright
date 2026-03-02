@@ -6,7 +6,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
 ## 功能说明
 
 按固定流程调用子 skill，形成可落地的剧本生产流水线：
-1) 与用户对话澄清需求，产出人设、剧本大纲与基础形态（少选项小说 / 多选项文字冒险）
+1) 与用户对话澄清需求，产出人设、剧本大纲与基础形态（视觉小说线性叙事）
 2) 基于阶段1结果生成“仅文本+演出效果”的剧本（不含背景图与人物图路径）
 3) 基于阶段1结果生成人物设定图
 4) 重新阅读剧本后生成背景图与人物立绘，并回写到剧本
@@ -22,7 +22,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
    "shared": {
       "planning": {
          "requirements_summary": "...",
-         "script_form": "novel_light_choices",
+         "script_form": "visual_novel",
          "worldview": "...",
          "characters": [{ "name": "林澈", "profile": "..." }],
          "outline": [{ "chapter": 1, "summary": "..." }]
@@ -57,11 +57,11 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
 
 1. 读取输入与目标：
    - 项目名 / 剧本名 / 风格 / 篇幅 / 目标受众
-   - 偏好类型：少选项小说 or 多选项文字冒险
+   - 偏好类型：视觉小说（线性叙事）
 
 2. 阶段化执行（逐步确认）：
    - 阶段1（需求澄清与方案）：通过对话补齐缺失信息，调用 `create-script` 并写入 `shared.planning`
-   - 阶段2（文本剧本）：调用 `create-script` 生成基础剧本，再调用 `configure-script-presentation` 添加 `effect`/`speed`，并更新 `shared.pipeline_state`
+   - 阶段2（文本剧本）：调用 `create-script` 生成基础剧本，再调用 `configure-script-presentation` 添加 `effect`/`speed`/`display_break_lines`，并更新 `shared.pipeline_state`
    - 阶段3（人物设定图）：调用 `generate-character-images` 按 `shared.planning.characters` 产出设定图并写入 `shared.character_refs`
    - 阶段4（场景资产与回写）：调用 `generate-scene-assets` 基于 `shared` 生成 `shared.asset_manifest`，再调用 `attach-script-assets` 回写到剧本
 
@@ -94,14 +94,14 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
       "mode": "planning",
       "style": "悬疑",
       "length": "short",
-      "script_form": "novel_light_choices"
+      "script_form": "visual_novel"
    },
    "output": {
       "requirements_summary": "...",
       "worldview": "...",
       "characters": [{ "name": "林澈", "profile": "..." }],
       "outline": [{ "chapter": 1, "summary": "..." }],
-      "script_form": "novel_light_choices",
+      "script_form": "visual_novel",
       "shared_written": ["planning", "pipeline_state"]
    }
 }
@@ -119,7 +119,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
          "worldview": "...",
          "characters": [{ "name": "林澈" }],
          "outline": [{ "chapter": 1, "summary": "..." }],
-         "script_form": "novel_light_choices"
+         "script_form": "visual_novel"
       }
    },
    "output": {

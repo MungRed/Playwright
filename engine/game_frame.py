@@ -6,9 +6,10 @@ import tkinter as tk
 
 from engine.background_controller import BackgroundController
 from engine.character_panel import CharacterPanel
-from engine.config import BG_CARD, BG_DARK, BG_HOVER, FG_DIM, FG_HINT, FG_MAIN
+from engine.config import BG_DARK, FG_DIM, FG_HINT, FG_MAIN
 from engine.effects import EFFECTS, EFFECT_SKIP_COLOR
 from engine.sidebar_tabs import ReaderSidebarTabs
+from engine.text_render import create_outlined_text, upsert_outlined_text
 
 
 class GameFrame(tk.Frame):
@@ -16,7 +17,6 @@ class GameFrame(tk.Frame):
     CENTER_HEIGHT = 720
     LEFT_SIDEBAR_WIDTH = 220
     RIGHT_SIDEBAR_WIDTH = 240
-
     TEXT_PANEL_MARGIN_X = 34
     TEXT_PANEL_MARGIN_TOP = 20
     TEXT_PANEL_MARGIN_BOTTOM = 26
@@ -39,13 +39,9 @@ class GameFrame(tk.Frame):
         self._at_ending: bool = False
         self._after_id: str | None = None
         self._bg_anim_after: str | None = None
-        self._choice_btns: list[tk.Frame] = []
-        self._choices_visible: bool = False
-        self._choices_anim_after: str | None = None
-        self._choices_opacity: float = 0.0
-        self._choices_base_y: int = -12
-        self._choices_hidden_y: int = 18
-        self._choices_current_y: int = self._choices_hidden_y
+        self._step_texts: list[str] = []
+        self._step_index: int = 0
+        self._step_seg_id: str = ""
 
         self._project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -90,11 +86,6 @@ class GameFrame(tk.Frame):
         self._canvas.bind("<Button-1>", self._on_advance)
         self._canvas.bind("<Configure>", self._on_canvas_resize)
 
-        self._choices_frame = tk.Frame(center, bg=BG_DARK)
-        self._choices_frame.place(in_=self._canvas, relx=0.5, rely=1.0, anchor="s", relwidth=0.92, y=-12)
-        self._choices_frame.lift()
-        self._choices_frame.place_forget()
-
         bottom = tk.Frame(center, bg=BG_DARK)
         bottom.pack(fill=tk.X, pady=(4, 12))
 
@@ -109,15 +100,11 @@ class GameFrame(tk.Frame):
         self.root.bind("<space>", self._on_advance)
         self.root.bind("<Escape>", self._on_escape)
         self.root.bind("<BackSpace>", self._on_back)
-        for i in range(1, 10):
-            self.root.bind(str(i), lambda e, n=i: self._on_number_key(n))
 
     def _unbind_keys(self):
         self.root.unbind("<space>")
         self.root.unbind("<Escape>")
         self.root.unbind("<BackSpace>")
-        for i in range(1, 10):
-            self.root.unbind(str(i))
 
     def _load_script(self):
         try:
@@ -131,20 +118,25 @@ class GameFrame(tk.Frame):
                 self.segments = {}
                 for i, seg in enumerate(raw):
                     seg = dict(seg)
-                    if "next" not in seg and "choices" not in seg and i + 1 < len(raw):
+                    seg.pop("choices", None)
+                    if "next" not in seg and i + 1 < len(raw):
                         seg["next"] = str(i + 1)
                     self.segments[str(i)] = seg
                 self.current_id = data.get("start", "0")
             else:
                 self.is_linear = False
                 self.total_linear = len(raw)
-                self.segments = {str(k): v for k, v in raw.items()}
+                self.segments = {}
+                for k, v in raw.items():
+                    seg = dict(v)
+                    seg.pop("choices", None)
+                    self.segments[str(k)] = seg
                 self.current_id = data.get("start", next(iter(self.segments), ""))
 
             self._title_lbl.config(text=data.get("title", "冒险"))
             self._sync_sidebar("-")
         except Exception as e:
-            self.segments = {"0": {"text": f"脚本加载失败：{e}", "effect": "fadein"}}
+            self.segments = {"0": {"text": f"脚本加载失败：{e}", "effect": "typewriter"}}
             self.current_id = "0"
             self.is_linear = True
             self.total_linear = 1
@@ -154,7 +146,9 @@ class GameFrame(tk.Frame):
         self.history.append(self.current_id)
         self.current_id = seg_id
         self._at_ending = False
-        self._hide_choices(animate=False)
+        self._step_seg_id = ""
+        self._step_texts = []
+        self._step_index = 0
         self._show_segment()
 
     def _show_segment(self):
@@ -163,8 +157,16 @@ class GameFrame(tk.Frame):
             self._show_ending()
             return
 
-        text = seg.get("text", "")
-        effect = seg.get("effect", "fadein").lower()
+        if self._step_seg_id != self.current_id:
+            self._step_texts = self._build_step_texts(seg)
+            self._step_index = 0
+            self._step_seg_id = self.current_id
+
+        text = self._current_step_text
+        if not text:
+            text = seg.get("text", "")
+
+        effect = seg.get("effect", "typewriter").lower()
         speed = seg.get("speed", 30)
 
         self._update_progress()
@@ -172,17 +174,57 @@ class GameFrame(tk.Frame):
         self.animating = True
         self._at_ending = False
 
-        self._background.configure_for_segment(seg)
-        self._background.refresh()
-        self._ensure_bg_animation()
-        self._character_panel.update_segment(seg)
+        if self._step_index == 0:
+            self._background.configure_for_segment(seg)
+            self._background.refresh()
+            self._ensure_bg_animation()
+            self._character_panel.update_segment(seg)
+        else:
+            self._background.refresh()
 
         self._draw_text_backdrop()
         self._canvas.delete("text_layer")
+        self._canvas.delete("text_base_layer")
+        self._canvas.delete("text_outline")
+        self._canvas.delete("anim_text_outline")
+        self._canvas.delete("append_anim_outline")
         self._canvas.delete("overlay_layer")
-        self._hide_choices(animate=False)
 
-        fx = EFFECTS.get(effect, EFFECTS["fadein"])
+        if self._step_index > 0:
+            prev_text = self._step_texts[self._step_index - 1] if self._step_index - 1 >= 0 else ""
+            if text.startswith(prev_text):
+                append_text = text[len(prev_text):]
+            else:
+                append_text = text
+
+            if not append_text:
+                col = EFFECT_SKIP_COLOR.get(effect, FG_MAIN)
+                create_outlined_text(
+                    self._canvas,
+                    self._cx, self._cy, text=text,
+                    font=("Microsoft YaHei", 18 if effect == "shake" else 16,
+                          "bold" if effect == "shake" else "normal"),
+                    fill=col, width=self._text_width, justify=tk.LEFT, anchor="nw",
+                    tags=("text_layer",),
+                )
+                self._on_anim_done(seg)
+                return
+
+            col = EFFECT_SKIP_COLOR.get(effect, FG_MAIN)
+            base_font = ("Microsoft YaHei", 18 if effect == "shake" else 16,
+                         "bold" if effect == "shake" else "normal")
+            create_outlined_text(
+                self._canvas,
+                self._cx, self._cy, text=prev_text,
+                font=base_font,
+                fill=col, width=self._text_width, justify=tk.LEFT, anchor="nw",
+                tags=("text_base_layer",),
+            )
+
+            self._animate_append_text(text, len(prev_text), effect, speed, seg, base_font)
+            return
+
+        fx = EFFECTS.get(effect, EFFECTS["typewriter"])
         fx(self._canvas, text, self._cx, self._cy, self._effect_cw,
            speed, seg, self._on_anim_done, self._set_after)
 
@@ -192,13 +234,9 @@ class GameFrame(tk.Frame):
     def _on_anim_done(self, seg: dict):
         self.animating = False
         self._after_id = None
+        self._render_current_text_static()
         self._ensure_bg_animation()
-        choices = seg.get("choices", [])
-        if choices:
-            self._show_choices(choices)
-            self._hint_lbl.config(text="请选择……", fg=FG_HINT)
-        else:
-            self._hint_lbl.config(fg=FG_HINT)
+        self._hint_lbl.config(fg=FG_HINT)
 
     def _update_progress(self):
         if self.is_linear:
@@ -222,154 +260,9 @@ class GameFrame(tk.Frame):
             visited.add(self.current_id)
         self._sidebar.update_script_state(progress_text, self.current_id, self.segments, visited)
 
-    def _show_choices(self, choices: list[dict]):
-        self._cancel_choices_anim()
-        self._clear_choice_buttons()
-        self._choices_frame.place(
-            in_=self._canvas,
-            relx=0.5,
-            rely=1.0,
-            anchor="s",
-            relwidth=0.92,
-            y=self._choices_hidden_y,
-        )
-        self._choices_visible = True
-        self._choices_opacity = 0.0
-        self._choices_current_y = self._choices_hidden_y
-        for i, choice in enumerate(choices):
-            label_text = f"[{i + 1}]  {choice.get('label', '')}"
-            btn = tk.Frame(self._choices_frame, bg=BG_CARD, cursor="hand2")
-            btn.pack(fill=tk.X, pady=3)
-
-            lbl = tk.Label(btn, text=label_text, font=("Microsoft YaHei", 11),
-                           fg=FG_MAIN, bg=BG_CARD, anchor="w", padx=18, pady=8)
-            lbl.pack(fill=tk.X)
-
-            next_id = choice.get("next", "")
-
-            def make_click(nid):
-                def handler(_=None):
-                    if not self.animating and self._choices_visible:
-                        self._navigate_to(nid)
-                return handler
-
-            def make_hover(frame, label, enter: bool):
-                def handler(_=None):
-                    col = BG_HOVER if enter else BG_CARD
-                    frame.config(bg=col)
-                    label.config(bg=col)
-                return handler
-
-            click = make_click(next_id)
-            for w in (btn, lbl):
-                w.bind("<Button-1>", click)
-                w.bind("<Enter>", make_hover(btn, lbl, True))
-                w.bind("<Leave>", make_hover(btn, lbl, False))
-
-            self._choice_btns.append(btn)
-
-        self._animate_choices_overlay(show=True)
-
-    def _hide_choices(self, animate: bool = True):
-        if not animate:
-            self._cancel_choices_anim()
-            self._clear_choice_buttons()
-            self._choices_frame.place_forget()
-            self._choices_visible = False
-            self._choices_opacity = 0.0
-            self._choices_current_y = self._choices_hidden_y
-            self._canvas.delete("choice_overlay_layer")
-            return
-
-        if not self._choice_btns and self._choices_opacity <= 0.0:
-            self._choices_visible = False
-            self._canvas.delete("choice_overlay_layer")
-            self._choices_frame.place_forget()
-            return
-
-        self._choices_visible = False
-        self._animate_choices_overlay(show=False)
-
-    def _clear_choice_buttons(self):
-        for w in self._choice_btns:
-            w.destroy()
-        self._choice_btns.clear()
-
-    def _render_choices_overlay(self):
-        self._canvas.delete("choice_overlay_layer")
-        if self._choices_opacity <= 0.0:
-            return
-        self.root.update_idletasks()
-        overlay_height = max(72, min(220, self._choices_frame.winfo_reqheight() + 14))
-        left = 14
-        right = max(left + 40, self._cw - 14)
-        bottom = self._ch - 8 + self._choices_current_y - self._choices_base_y
-        top = max(8, bottom - overlay_height)
-        if self._choices_opacity < 0.34:
-            stipple = "gray12"
-        elif self._choices_opacity < 0.67:
-            stipple = "gray25"
-        else:
-            stipple = "gray50"
-        self._canvas.create_rectangle(
-            left,
-            top,
-            right,
-            bottom,
-            fill="#000000",
-            outline="",
-            stipple=stipple,
-            tags=("choice_overlay_layer",),
-        )
-        self._canvas.tag_raise("choice_overlay_layer")
-
-    def _animate_choices_overlay(self, show: bool):
-        self._cancel_choices_anim()
-
-        target = 1.0 if show else 0.0
-        step = 0.22
-
-        def tick():
-            self._choices_anim_after = None
-
-            if target > self._choices_opacity:
-                self._choices_opacity = min(target, self._choices_opacity + step)
-            else:
-                self._choices_opacity = max(target, self._choices_opacity - step)
-
-            y_span = self._choices_hidden_y - self._choices_base_y
-            self._choices_current_y = int(self._choices_hidden_y - y_span * self._choices_opacity)
-
-            if self._choices_opacity > 0.0:
-                self._choices_frame.place(
-                    in_=self._canvas,
-                    relx=0.5,
-                    rely=1.0,
-                    anchor="s",
-                    relwidth=0.92,
-                    y=self._choices_current_y,
-                )
-
-            self._render_choices_overlay()
-
-            if self._choices_opacity != target:
-                self._choices_anim_after = self._canvas.after(33, tick)
-                return
-
-            if target <= 0.0:
-                self._clear_choice_buttons()
-                self._choices_frame.place_forget()
-                self._canvas.delete("choice_overlay_layer")
-
-        tick()
-
-    def _cancel_choices_anim(self):
-        if self._choices_anim_after:
-            self._canvas.after_cancel(self._choices_anim_after)
-            self._choices_anim_after = None
-
     def _show_ending(self):
         self._canvas.delete("text_layer")
+        self._canvas.delete("text_base_layer")
         self._canvas.delete("overlay_layer")
         self._background.refresh()
 
@@ -395,11 +288,11 @@ class GameFrame(tk.Frame):
                 self._canvas.after_cancel(self._after_id)
                 self._after_id = None
 
-            text = seg.get("text", "")
-            eff = seg.get("effect", "fadein")
+            text = self._current_step_text or seg.get("text", "")
+            eff = seg.get("effect", "typewriter")
             col = EFFECT_SKIP_COLOR.get(eff, FG_MAIN)
-            self._canvas.delete("text_layer")
-            self._canvas.create_text(
+            create_outlined_text(
+                self._canvas,
                 self._cx, self._cy, text=text,
                 font=("Microsoft YaHei", 18 if eff == "shake" else 16,
                       "bold" if eff == "shake" else "normal"),
@@ -412,7 +305,9 @@ class GameFrame(tk.Frame):
         if self._at_ending:
             return
 
-        if seg.get("choices"):
+        if self._step_index + 1 < len(self._step_texts):
+            self._step_index += 1
+            self._show_segment()
             return
 
         next_id = seg.get("next")
@@ -421,22 +316,14 @@ class GameFrame(tk.Frame):
         else:
             self._show_ending()
 
-    def _on_number_key(self, n: int):
-        if self.animating or not self._choices_visible:
-            return
-        choices = self.segments.get(self.current_id, {}).get("choices", [])
-        idx = n - 1
-        if 0 <= idx < len(choices):
-            next_id = choices[idx].get("next", "")
-            if next_id:
-                self._navigate_to(str(next_id))
-
     def _on_back(self, _=None):
         if self.animating or not self.history:
             return
-        self._hide_choices(animate=False)
         self._at_ending = False
         self.current_id = self.history.pop()
+        self._step_seg_id = ""
+        self._step_texts = []
+        self._step_index = 0
         self._show_segment()
 
     def _on_escape(self, _=None):
@@ -445,7 +332,6 @@ class GameFrame(tk.Frame):
         if self._bg_anim_after:
             self._canvas.after_cancel(self._bg_anim_after)
             self._bg_anim_after = None
-        self._cancel_choices_anim()
         self._unbind_keys()
         self.game.show_main_menu()
 
@@ -464,6 +350,7 @@ class GameFrame(tk.Frame):
     def _redraw_static_canvas(self):
         seg = self.segments.get(self.current_id)
         self._canvas.delete("text_layer")
+        self._canvas.delete("text_base_layer")
         self._canvas.delete("overlay_layer")
         self._background.refresh()
         self._draw_text_backdrop()
@@ -482,10 +369,11 @@ class GameFrame(tk.Frame):
         if not seg:
             return
 
-        text = seg.get("text", "")
-        eff = seg.get("effect", "fadein")
+        text = self._current_step_text or seg.get("text", "")
+        eff = seg.get("effect", "typewriter")
         col = EFFECT_SKIP_COLOR.get(eff, FG_MAIN)
-        self._canvas.create_text(
+        create_outlined_text(
+            self._canvas,
             self._cx, self._cy, text=text,
             font=("Microsoft YaHei", 18 if eff == "shake" else 16,
                   "bold" if eff == "shake" else "normal"),
@@ -498,26 +386,80 @@ class GameFrame(tk.Frame):
         if not self.animating:
             self._redraw_static_canvas()
             self._ensure_bg_animation()
-        if self._choices_visible or self._choices_opacity > 0.0:
-            self._render_choices_overlay()
 
     def _draw_text_backdrop(self):
         self._canvas.delete("text_backdrop_layer")
-        left = self.TEXT_PANEL_MARGIN_X
-        top = self.TEXT_PANEL_MARGIN_TOP
-        right = max(left + 60, self._cw - self.TEXT_PANEL_MARGIN_X)
-        bottom = max(top + 60, self._ch - self.TEXT_PANEL_MARGIN_BOTTOM)
-        self._canvas.create_rectangle(
-            left,
-            top,
-            right,
-            bottom,
-            fill=BG_DARK,
-            outline="",
-            tags=("text_backdrop_layer",),
-        )
-        self._canvas.tag_raise("text_backdrop_layer")
 
+    def _render_current_text_static(self):
+        seg = self.segments.get(self.current_id, {})
+        text = self._current_step_text or seg.get("text", "")
+        eff = seg.get("effect", "typewriter")
+        col = EFFECT_SKIP_COLOR.get(eff, FG_MAIN)
+        self._canvas.delete("text_base_layer")
+        self._canvas.delete("anim_text_outline")
+        self._canvas.delete("append_anim_outline")
+        upsert_outlined_text(
+            self._canvas,
+            "text_outline",
+            self._cx, self._cy, text=text,
+            font=("Microsoft YaHei", 18 if eff == "shake" else 16,
+                  "bold" if eff == "shake" else "normal"),
+            fill=col, width=self._text_width, justify=tk.LEFT, anchor="nw",
+            tags=("text_layer",),
+        )
+
+    @property
+    def _current_step_text(self) -> str:
+        if not self._step_texts:
+            return ""
+        idx = max(0, min(self._step_index, len(self._step_texts) - 1))
+        return self._step_texts[idx]
+
+    def _build_step_texts(self, seg: dict) -> list[str]:
+        text = str(seg.get("text", "") or "")
+
+        break_lines = seg.get("display_break_lines")
+        if isinstance(break_lines, list):
+            raw_lines = text.split("\n")
+            if raw_lines:
+                valid_points: list[int] = []
+                max_line = len(raw_lines)
+                for p in break_lines:
+                    if isinstance(p, int) and 1 <= p < max_line and p not in valid_points:
+                        valid_points.append(p)
+                valid_points.sort()
+                if valid_points:
+                    ends = valid_points + [max_line]
+                    return ["\n".join(raw_lines[:end]) for end in ends]
+
+        return [text]
+
+    def _animate_append_text(self, full_text: str, base_len: int, effect: str,
+                             speed: int, seg: dict, font_spec: tuple):
+        if base_len >= len(full_text):
+            self._on_anim_done(seg)
+            return
+
+        color = EFFECT_SKIP_COLOR.get(effect, FG_MAIN)
+        idx = [base_len]
+
+        def tick():
+            upsert_outlined_text(
+                self._canvas,
+                "append_anim_outline",
+                self._cx, self._cy, text=full_text[:idx[0]],
+                font=font_spec,
+                fill=color, width=self._text_width, justify=tk.LEFT, anchor="nw",
+                tags=("text_layer",),
+            )
+
+            idx[0] += 1
+            if idx[0] <= len(full_text):
+                self._set_after(self._canvas.after(speed, tick))
+            else:
+                self._on_anim_done(seg)
+
+        tick()
 
     @property
     def _cw(self) -> int:

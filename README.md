@@ -8,19 +8,17 @@
 
 - **主菜单**：自动扫描 `scripts/` 目录，动态展示所有可用游戏
 - **逐段叙事**：按空格键或鼠标左键推进剧情
-- **剧情分支**：段落可设置多个选项，点击或按数字键进入不同剧情线
+- **段内分步追加**：可通过段落配置控制同段文本的分步显示与追加
 - **历史回退**：按 BackSpace 键返回上一段（剧情进行中有效，结局画面除外）
-- **文字演出效果**：支持四种内置效果
-  - `fadein` — 文字渐显
+- **文字演出效果**：支持两种内置效果
   - `typewriter` — 打字机逐字输出
   - `shake` — 文字震动（适合惊险场景）
-  - `wave` — 逐字弹入波浪效果
 - **左侧 Tab 工具栏**：通过 Tab 切换“剧本/操作/帮助”界面
 - **背景图层**：段落可配置背景图，支持渐变切换与震动
 - **右侧人物栏**：显示当前说话人物与立绘（可由脚本指定）
 - **自适应窗口模式**：主菜单默认 `1280x720`；进入阅读后自动向左右扩展侧栏，窗口可自由缩放
-- **文字可读性增强**：剧情文字下方自动渲染半透明黑色底板（保留背景可见区域）
-- **剧本 Tab 可视化**：可查看当前剧本进度与分支去向映射
+- **文字可读性增强**：剧情文字采用黑色描边渲染，保留完整背景画面
+- **剧本 Tab 可视化**：可查看当前剧本进度与段落去向映射
 - **跳过动画**：按空格键可跳过当前动画，直接显示完整文本
 - **返回菜单**：按 ESC 键随时返回主菜单
 
@@ -126,7 +124,7 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
 
 ## 脚本格式
 
-游戏脚本为 JSON 文件，放置于 `scripts/` 目录下，引擎启动时自动识别。支持两种格式：
+游戏脚本为 JSON 文件，放置于 `scripts/` 目录下，引擎启动时自动识别。仅支持线性格式：
 
 ### 线性格式（数组）
 
@@ -139,7 +137,7 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
   "segments": [
     {
       "text": "段落文字内容，支持 \\n 换行",
-      "effect": "fadein",
+      "effect": "typewriter",
       "speed": 30
     },
     {
@@ -150,56 +148,19 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
 }
 ```
 
-### 分支格式（字典）
-
-段落以具名 ID 组织，通过 `choices` 或 `next` 字段控制跳转，适合多结局、多分支故事。
-
-```json
-{
-  "title": "游戏标题",
-  "description": "在主菜单显示的简介",
-  "start": "intro",
-  "segments": {
-    "intro": {
-      "text": "故事开头……",
-      "effect": "fadein",
-      "choices": [
-        {"label": "选择A", "next": "branch_a"},
-        {"label": "选择B", "next": "branch_b"}
-      ]
-    },
-    "branch_a": {
-      "text": "走了A路……",
-      "effect": "typewriter",
-      "next": "ending"
-    },
-    "branch_b": {
-      "text": "走了B路……",
-      "effect": "shake",
-      "next": "ending"
-    },
-    "ending": {
-      "text": "故事结束。",
-      "effect": "fadein"
-    }
-  }
-}
-```
-
 ### 字段说明
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `title` | string | 游戏标题 |
 | `description` | string | 主菜单简介 |
-| `start` | string | 起始段落 ID（仅分支格式，默认第一个） |
 | `shared` | object | 流水线共享数据（规划、人设图、资产清单、阶段状态） |
-| `segments` | array 或 object | 段落列表或段落字典 |
+| `segments` | array | 段落列表 |
 | `text` | string | 段落文字，`\n` 换行 |
-| `effect` | string | 演出效果，默认 `fadein` |
+| `display_break_lines` | array[int] | 可选：同段分步断点（按原文行号断开，避免重复文本） |
+| `effect` | string | 演出效果，默认 `typewriter` |
 | `speed` | int | 动画速度（毫秒/帧），默认 `30` |
-| `next` | string | 下一段落的 ID（分支格式中无选项时使用） |
-| `choices` | array | 选项列表，每项含 `label`（文字）和 `next`（跳转 ID） |
+| `next` | string | 下一段落的 ID（可选，未提供时自动顺序推进） |
 | `speaker` | string | 当前段落说话人名称，显示在右侧人物栏 |
 | `character_image` | string | 当前段落人物图路径（相对项目根目录或绝对路径） |
 | `background` | object | 背景图配置对象（见下方） |
@@ -210,14 +171,16 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
 "shared": {
   "planning": {
     "requirements_summary": "...",
-    "script_form": "novel_light_choices",
+    "script_form": "visual_novel",
     "worldview": "...",
     "characters": [{ "name": "林澈", "profile": "..." }],
     "outline": [{ "chapter": 1, "summary": "..." }]
   },
   "style_contract": {
-    "style_anchor": "anime visual novel, clean lineart",
-    "negative_anchor": "低质量, 模糊, 水印, 文本"
+    "background_style_anchor": "anime visual novel background, clean lineart",
+    "background_negative_anchor": "低质量, 模糊, 水印, 文本, 人物",
+    "character_style_anchor": "anime visual novel character illustration, clean lineart",
+    "character_negative_anchor": "低质量, 模糊, 水印, 文本, 畸形"
   },
   "character_refs": [
     { "name": "林澈", "image": "docs/scenes/迷失之森/char_ref_林澈_v1.png" }
@@ -252,10 +215,8 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
 
 | effect | 效果 | 推荐 speed | 适用场景 |
 |--------|------|-----------|----------|
-| `fadein` | 文字渐显 | 20–35 | 通用叙述 |
 | `typewriter` | 打字机逐字 | 50–80 | 对话、独白 |
 | `shake` | 震动（红色） | 15–20 | 危险、惊吓 |
-| `wave` | 波浪弹入 | 18–25 | 奇幻、神秘 |
 
 ---
 
@@ -263,8 +224,7 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
 
 | 操作 | 功能 |
 |------|------|
-| `空格键` / `鼠标左键` | 跳过当前动画 / 下一段（无选项时） |
-| `1` ~ `9` | 快速选择对应编号的选项 |
+| `空格键` / `鼠标左键` | 跳过当前步动画 / 同段按配置追加 / 下一段 |
 | `BackSpace` | 返回上一段（剧情进行中有效，结局画面不可用） |
 | `ESC` | 返回主菜单（任意时刻均有效） |
 
@@ -289,7 +249,8 @@ Playwright/
 ├── engine/               # 引擎模块
 │   ├── config.py         # 颜色常量与脚本目录路径
 │   ├── utils.py          # 颜色插值等工具函数
-│   ├── effects.py        # 四种文字演出效果实现与注册表
+│   ├── effects.py        # 文字演出效果实现与注册表
+│   ├── text_render.py    # Canvas 描边文本渲染工具（创建/就地更新）
 │   ├── background_controller.py # 背景图控制（适配/渐变/震动）
 │   ├── character_panel.py # 右侧人物栏组件
 │   ├── menu.py           # 主菜单界面
@@ -297,8 +258,8 @@ Playwright/
 │   └── game_frame.py     # 游戏界面（脚本加载、段落展示、交互逻辑）
 ├── scripts/              # 游戏脚本目录
 │   ├── 迷失之森.json      # 线性示例：神秘森林冒险（11段）
-│   ├── 午夜密室.json      # 分支示例：推理悬疑多结局
-│   ├── 今天也在摸鱼.json  # 分支示例：打工人日常搞笑故事
+│   ├── 午夜密室.json      # 线性示例：推理悬疑故事
+│   ├── 今天也在摸鱼.json  # 线性示例：打工人日常搞笑故事
 │   ├── bootstrap_env.py  # 本地环境自检与部署脚本
 │   └── upload_to_cos.py  # COS 参考图上传脚本
 ├── docs/scenes/          # 背景图/人物图等资源
@@ -314,15 +275,15 @@ Playwright/
 
 > 夜幕低垂，你独自踏入一片陌生的神秘森林……
 
-包含 11 段线性剧情，涵盖全部四种演出效果，适合快速体验基础功能。
+包含 11 段线性剧情，涵盖内置演出效果，适合快速体验基础功能。
 
 ---
 
-**《午夜密室》**（[scripts/午夜密室.json](scripts/午夜密室.json)）— 分支格式
+**《午夜密室》**（[scripts/午夜密室.json](scripts/午夜密室.json)）— 线性格式
 
 > 深夜十二点，你被邀请前往废弃庄园调查失踪案……
 
-包含多条剧情线路、三种不同结局，对话选项影响故事走向。剧情进行中可按 BackSpace 回退，到达结局后仅可按 ESC 返回主菜单。
+包含连续推理剧情与多段场景切换。剧情进行中可按 BackSpace 回退，到达结局后仅可按 ESC 返回主菜单。
 
 ---
 

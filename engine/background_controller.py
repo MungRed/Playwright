@@ -26,6 +26,7 @@ class BackgroundController:
         self._bg_shake_strength: int = 0
 
         self._bg_tk_image: ImageTk.PhotoImage | None = None
+        self._bg_tk_cache: dict[tuple[str, int, int], ImageTk.PhotoImage] = {}
         self._bg_cache: dict[str, Image.Image] = {}
         self._bg_resized_cache: dict[tuple[str, int, int], Image.Image] = {}
         self._last_render_key: tuple | None = None
@@ -40,10 +41,11 @@ class BackgroundController:
         effects = self._extract_effects(bg)
 
         if image_path and image_path != self._bg_path:
-            do_fade = "fade" in effects or "fadein" in effects
+            do_fade = "fade" in effects
             self._bg_prev_path = self._bg_path
             self._bg_path = image_path
             self._bg_resized_cache.clear()
+            self._bg_tk_cache.clear()
             if do_fade and self._bg_prev_path:
                 self._bg_fading = True
                 self._bg_fade_start = time.monotonic()
@@ -80,13 +82,21 @@ class BackgroundController:
 
         self.canvas.delete(self.BG_SOLID_TAG)
 
-        composed = target
+        shake_x, shake_y = self._current_shake_offset()
+
+        using_dynamic_blend = False
+        image_changed = False
+        render_key: tuple
+
         if self._bg_fading and self._bg_prev_path:
             prev = self._get_resized_bg(self._bg_prev_path, width, height)
             if prev is not None:
                 t = (time.monotonic() - self._bg_fade_start) / self._bg_fade_duration
                 t = max(0.0, min(1.0, t))
                 composed = Image.blend(prev, target, t)
+                self._bg_tk_image = ImageTk.PhotoImage(composed)
+                using_dynamic_blend = True
+                image_changed = True
                 if t >= 1.0:
                     self._bg_fading = False
                     self._bg_prev_path = None
@@ -94,29 +104,35 @@ class BackgroundController:
                 self._bg_fading = False
                 self._bg_prev_path = None
 
-        shake_x, shake_y = self._current_shake_offset()
-        render_key = (
-            self._bg_path,
-            self._bg_prev_path,
-            width,
-            height,
-            round((time.monotonic() - self._bg_fade_start) * 1000) if self._bg_fading else -1,
-            shake_x,
-            shake_y,
-        )
+        if not using_dynamic_blend:
+            static_key = (self._bg_path or "", width, height)
+            cached = self._bg_tk_cache.get(static_key)
+            if cached is None:
+                cached = ImageTk.PhotoImage(target)
+                self._bg_tk_cache[static_key] = cached
+            self._bg_tk_image = cached
+            render_key = ("static", *static_key)
+            image_changed = self._last_render_key != render_key
+        else:
+            render_key = (
+                self._bg_path,
+                self._bg_prev_path,
+                width,
+                height,
+                round((time.monotonic() - self._bg_fade_start) * 1000),
+            )
 
         existing = self.canvas.find_withtag(self.BG_IMAGE_TAG)
         if existing and render_key == self._last_render_key and self._last_pos == (shake_x, shake_y):
             return
-
-        self._bg_tk_image = ImageTk.PhotoImage(composed)
 
         existing = self.canvas.find_withtag(self.BG_IMAGE_TAG)
         if existing:
             item = existing[0]
             if self.canvas.type(item) == "image":
                 try:
-                    self.canvas.itemconfig(item, image=self._bg_tk_image)
+                    if image_changed:
+                        self.canvas.itemconfig(item, image=self._bg_tk_image)
                     self.canvas.coords(item, shake_x, shake_y)
                 except tk.TclError:
                     self.canvas.delete(self.BG_IMAGE_TAG)
@@ -144,12 +160,14 @@ class BackgroundController:
                 anchor="nw",
                 tags=(self.BG_IMAGE_TAG,),
             )
+
         self.canvas.tag_lower(self.BG_IMAGE_TAG)
         self._last_render_key = render_key
         self._last_pos = (shake_x, shake_y)
 
     def on_resize(self):
         self._bg_resized_cache.clear()
+        self._bg_tk_cache.clear()
         self._last_render_key = None
 
     @property
