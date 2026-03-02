@@ -11,15 +11,22 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
 3) 基于阶段1结果生成人物设定图
 4) 重新阅读剧本后生成背景图与人物立绘，并回写到剧本
 
+## 生文调用约束（必须遵守）
+
+- 阶段1（规划）与阶段2（文本剧本）涉及文本创作时，必须通过混元生文 API 生成。
+- 统一调用 MCP 工具：`mcp_playwright-im_generate_text`（ChatCompletions）。
+- 禁止在未调用生文 API 的情况下直接产出完整规划文本或完整剧本正文。
+- 若生文 API 调用失败，应中断后续链路并询问用户“重试 / 降级 / 终止”。
+
 ## 原创约束（必须遵守）
 
-- 阶段1/阶段2属于文本创作阶段，禁止将项目中已有剧本正文（`scripts/*.json`）作为创意来源。
+- 阶段1/阶段2属于文本创作阶段，禁止将项目中已有剧本正文（`scripts/*/script.json`）作为创意来源。
 - 编排时仅允许子 skill 读取“当前目标剧本文件”用于续写或修订，不得读取其他剧本进行模仿、拼接或改写。
 - 若用户要求参考现有剧本风格，必须改为抽象题材方向描述（如“悬疑/校园/奇幻”），不得复用现有人物设定、专有名词、关键桥段。
 
 ## 共享数据协议（必须遵守）
 
-所有子 skill 必须共享同一份脚本内数据源：`scripts/<script_name>.json` 顶层 `shared`。
+所有子 skill 必须共享同一份脚本内数据源：`scripts/<script_name>/script.json` 顶层 `shared`。
 
 推荐结构：
 
@@ -46,13 +53,13 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
          "character_negative_anchor": "低质量, 模糊, 水印, 文本, 畸形, 多余肢体"
       },
       "character_refs": [
-         { "name": "林澈", "image": "docs/scenes/迷失之森/char_ref_林澈_v1.png" }
+         { "name": "林澈", "image": "assets/char_ref_林澈_v1.png" }
       ],
       "asset_manifest": [
          {
             "segment_id": "s1",
-            "background_image": "docs/scenes/迷失之森/scene_s1.png",
-            "character_image": "docs/scenes/迷失之森/char_林澈_calm.png"
+            "background_image": "assets/scene_s1.png",
+            "character_image": "assets/char_林澈_calm.png"
          }
       ],
       "pipeline_state": {
@@ -74,8 +81,8 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
    - 若为 `user_keywords`，收集关键词包（世界观 / 人设 / 大纲）
 
 2. 阶段化执行（默认自动连续执行，不逐步询问）：
-   - 阶段1（需求澄清与方案）：通过对话补齐缺失信息，先确认大纲来源模式（AI 自动或用户关键词），调用 `create-script` 并写入 `shared.planning`（明确传入“原创创作，不参考其他剧本正文”约束）
-   - 阶段2（文本剧本）：调用 `create-script` 生成基础剧本，再调用 `configure-script-presentation` 添加 `effect`/`speed`/`display_break_lines`，并更新 `shared.pipeline_state`（其中 `typewriter` 速度固定为 `55`；文本阶段保持原创约束）
+   - 阶段1（需求澄清与方案）：通过对话补齐缺失信息，先确认大纲来源模式（AI 自动或用户关键词），调用 `create-script` 并由其调用 `mcp_playwright-im_generate_text` 生成规划内容后写入 `shared.planning`（明确传入“原创创作，不参考其他剧本正文”约束）
+   - 阶段2（文本剧本）：调用 `create-script` 并由其调用 `mcp_playwright-im_generate_text` 生成基础剧本文本，再调用 `configure-script-presentation` 添加 `effect`/`speed`/`display_break_lines`，并更新 `shared.pipeline_state`（其中 `typewriter` 速度固定为 `55`；文本阶段保持原创约束）
    - 阶段2结束后必须执行一致性校验：`title` 应与剧本文件名（不含 `.json`）一致；不一致则自动修正为文件名
    - 阶段3（人物设定图）：调用 `generate-character-images` 按 `shared.planning.characters` 产出设定图并写入 `shared.character_refs`
    - 阶段4（场景资产与回写）：调用 `generate-scene-assets` 基于 `shared` 生成 `shared.asset_manifest`，再调用 `attach-script-assets` 回写到剧本
@@ -146,7 +153,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
       }
    },
    "output": {
-      "script_path": "scripts/迷失之森.json",
+      "script_path": "scripts/迷失之森/script.json",
       "includes_text": true,
       "includes_presentation": true,
       "includes_asset_fields": false,
@@ -169,7 +176,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
    },
    "output": {
       "character_refs": [
-         { "name": "林澈", "image": "docs/scenes/迷失之森/char_ref_林澈_v1.png" }
+         { "name": "林澈", "image": "assets/char_ref_林澈_v1.png" }
       ],
       "shared_read": ["planning", "style_contract"],
       "shared_written": ["character_refs", "pipeline_state"]
@@ -184,21 +191,21 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
    "stage": "4",
    "skill": "generate-scene-assets + attach-script-assets",
    "input": {
-      "script_path": "scripts/迷失之森.json",
+      "script_path": "scripts/迷失之森/script.json",
       "script_name": "迷失之森",
       "character_refs": [
-         { "name": "林澈", "image": "docs/scenes/迷失之森/char_ref_林澈_v1.png" }
+         { "name": "林澈", "image": "assets/char_ref_林澈_v1.png" }
       ]
    },
    "output": {
       "asset_manifest": [
          {
             "segment_id": "s1",
-            "background_image": "docs/scenes/迷失之森/scene_s1.png",
-            "character_image": "docs/scenes/迷失之森/char_林澈_calm.png"
+            "background_image": "assets/scene_s1.png",
+            "character_image": "assets/char_林澈_calm.png"
          }
       ],
-      "final_script_path": "scripts/迷失之森.json",
+      "final_script_path": "scripts/迷失之森/script.json",
       "generated_background_count": 4,
       "generated_character_pose_count": 6,
       "reused_asset_count": 10,

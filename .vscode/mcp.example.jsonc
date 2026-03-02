@@ -1,6 +1,6 @@
 {
-  // Playwright 项目 —— 腾讯混元生图 MCP 配置模板（仅混元）
-  // 用法：复制为 .vscode/mcp.json 后，填入你自己的腾讯云密钥
+  // Playwright 项目 —— 腾讯混元 MCP 空模板（仅混元）
+  // 约定：此文件始终保持空模板，不填写任何真实密钥；复制为 .vscode/mcp.json 后再填写本地实值
   "servers": {
     "playwright-image-gen": {
       "type": "stdio",
@@ -8,13 +8,16 @@
       "args": ["${workspaceFolder}/.mcp/image_gen_server.py"],
       "env": {
 
-        // ── 腾讯混元（支持极速版 + 3.0任务接口）──────────────────────────────
+        // ── 腾讯混元（生文 + 生图）──────────────────────────────────────────
+        // ChatCompletions（生文）文档：https://cloud.tencent.com/document/product/1729/105701
         // TextToImageLite（极速版）文档：https://cloud.tencent.com/document/product/1668/120721
         // SubmitTextToImageJob（3.0）文档：https://cloud.tencent.com/document/product/1668/124632
         "TENCENT_SECRET_ID": "",
         "TENCENT_SECRET_KEY": "",
         "TENCENT_TOKEN": "",
         "HUNYUAN_REGION": "ap-guangzhou",
+        "HUNYUAN_TEXT_ENDPOINT": "hunyuan.tencentcloudapi.com",
+        "HUNYUAN_TEXT_MODEL": "hunyuan-pro",
         "HUNYUAN_ENDPOINT": "aiart.tencentcloudapi.com",
         "HUNYUAN_API_ACTION": "TextToImageLite",
         "HUNYUAN_RSP_IMG_TYPE": "url",
@@ -37,7 +40,7 @@
         "COS_SIGNED_URL_EXPIRE_SEC": "3600",
 
         // ── 图片输出目录 ─────────────────────────────────────────────────────
-        "OUTPUT_DIR": "${workspaceFolder}/docs/scenes"
+        "OUTPUT_DIR": "${workspaceFolder}/scripts"
       }
     }
   }

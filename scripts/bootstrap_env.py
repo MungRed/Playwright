@@ -9,7 +9,7 @@ VENV_DIR = ROOT / ".venv"
 REQ_FILE = ROOT / ".mcp" / "requirements.txt"
 MCP_JSON = ROOT / ".vscode" / "mcp.json"
 MCP_EXAMPLE_JSON = ROOT / ".vscode" / "mcp.example.jsonc"
-SCENES_DIR = ROOT / "docs" / "scenes"
+SCRIPTS_DIR = ROOT / "scripts"
 
 
 class CheckResult:
@@ -83,14 +83,14 @@ def install_deps(check_only: bool) -> CheckResult:
 
 
 def ensure_dirs(check_only: bool) -> CheckResult:
-    if SCENES_DIR.exists():
-        return CheckResult("目录检查", True, f"目录已存在：{SCENES_DIR}")
+    if SCRIPTS_DIR.exists():
+        return CheckResult("目录检查", True, f"目录已存在：{SCRIPTS_DIR}")
 
     if check_only:
-        return CheckResult("目录检查", False, f"目录缺失：{SCENES_DIR}（check-only 未创建）")
+        return CheckResult("目录检查", False, f"目录缺失：{SCRIPTS_DIR}（check-only 未创建）")
 
-    SCENES_DIR.mkdir(parents=True, exist_ok=True)
-    return CheckResult("目录检查", True, f"已创建目录：{SCENES_DIR}")
+    SCRIPTS_DIR.mkdir(parents=True, exist_ok=True)
+    return CheckResult("目录检查", True, f"已创建目录：{SCRIPTS_DIR}")
 
 
 def ensure_mcp_config(check_only: bool) -> CheckResult:
