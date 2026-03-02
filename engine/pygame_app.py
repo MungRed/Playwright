@@ -58,6 +58,7 @@ class PygameVNApp:
 
         self.scripts = self._load_scripts()
         self.menu_rects: list[tuple[pygame.Rect, ScriptMeta]] = []
+        self.current_script_dir = SCRIPTS_DIR
 
         self.segments: dict[str, dict] = {}
         self.current_id = ""
@@ -148,9 +149,34 @@ class PygameVNApp:
     def _load_scripts(self) -> list[ScriptMeta]:
         os.makedirs(SCRIPTS_DIR, exist_ok=True)
         result: list[ScriptMeta] = []
-        for path in sorted(glob.glob(os.path.join(SCRIPTS_DIR, "*.json"))):
+        loaded_paths: set[str] = set()
+
+        for folder_name in sorted(os.listdir(SCRIPTS_DIR)):
+            folder_path = os.path.join(SCRIPTS_DIR, folder_name)
+            if not os.path.isdir(folder_path):
+                continue
+            path = os.path.join(folder_path, "script.json")
+            if not os.path.isfile(path):
+                continue
             try:
-                with open(path, encoding="utf-8") as f:
+                with open(path, encoding="utf-8-sig") as f:
+                    data = json.load(f)
+                result.append(
+                    ScriptMeta(
+                        path=path,
+                        title=data.get("title", folder_name),
+                        description=data.get("description", ""),
+                    )
+                )
+                loaded_paths.add(os.path.abspath(path))
+            except Exception:
+                continue
+
+        for path in sorted(glob.glob(os.path.join(SCRIPTS_DIR, "*.json"))):
+            if os.path.abspath(path) in loaded_paths:
+                continue
+            try:
+                with open(path, encoding="utf-8-sig") as f:
                     data = json.load(f)
                 result.append(
                     ScriptMeta(
@@ -161,6 +187,7 @@ class PygameVNApp:
                 )
             except Exception:
                 continue
+
         return result
 
     def _handle_events(self):
@@ -246,17 +273,20 @@ class PygameVNApp:
 
     def _start_script(self, script_path: str):
         try:
-            with open(script_path, encoding="utf-8") as f:
+            with open(script_path, encoding="utf-8-sig") as f:
                 data = json.load(f)
         except Exception as exc:
             self.segments = {"0": {"text": f"脚本加载失败：{exc}", "effect": "typewriter", "speed": TYPEWRITER_SPEED}}
             self.script_title = "加载失败"
             self.total_linear = 1
             self.current_id = "0"
+            self.current_script_dir = os.path.dirname(script_path)
             self.history = []
             self.mode = "reader"
             self._show_segment()
             return
+
+        self.current_script_dir = os.path.dirname(script_path)
 
         raw = data.get("segments", [])
         self.segments = {}
@@ -295,6 +325,7 @@ class PygameVNApp:
     def _back_to_menu(self):
         self.mode = "menu"
         self.animating = False
+        self.current_script_dir = SCRIPTS_DIR
         self.scripts = self._load_scripts()
         self.screen = self._set_window_size(MENU_WIDTH, MENU_HEIGHT, preserve_center=True)
         self.scaled_image_cache.clear()
@@ -628,8 +659,16 @@ class PygameVNApp:
             return None
         if os.path.isabs(path):
             return path if os.path.exists(path) else None
-        abs_path = os.path.join(ROOT, path)
-        return abs_path if os.path.exists(abs_path) else None
+
+        script_relative = os.path.join(self.current_script_dir, path)
+        if os.path.exists(script_relative):
+            return script_relative
+
+        project_relative = os.path.join(ROOT, path)
+        if os.path.exists(project_relative):
+            return project_relative
+
+        return None
 
     def _load_image(self, path: str) -> pygame.Surface | None:
         if path in self.base_image_cache:
