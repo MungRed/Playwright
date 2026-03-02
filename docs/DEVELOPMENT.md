@@ -94,6 +94,8 @@ python scripts/bootstrap_env.py --check-only
 	- `shared.pipeline_state`：阶段进度与统计信息
 - 兼容历史脚本：若仅有顶层 `planning`，可读取后迁移到 `shared.planning`。
 - 默认约定：用户未指定大纲来源时，`planning_source=ai_auto`。
+- 编排执行约定：阶段1（规划）完成后，默认自动连续执行阶段2-4；仅在阶段失败或关键参数缺失时再询问用户意见。
+- 一致性约定：`title` 应与剧本文件名（不含 `.json`）保持一致；不一致时应自动修正。
 
 ### 5.4 背景配置（background）
 
@@ -153,6 +155,8 @@ python scripts/bootstrap_env.py --check-only
 - 提示词策略要求：允许长提示词，推荐按“主体要素 + 构图镜头 + 光照色调 + 材质细节 + 用途约束”分层描述；背景需增加文本可读区留白约束，立绘需增加表情强度与边缘清晰度约束。
 - 图生图支持本地参考图自动上传 COS：当启用 `COS_AUTO_UPLOAD_ENABLED=true` 且 `reference_images` 传本地路径时，服务会先按内容哈希 Key 检查对象是否已存在，存在则直接复用 URL，不存在再上传后回填 URL。
 - COS 自动上传依赖：`cos-python-sdk-v5`（通过 `.mcp/requirements.txt` 安装）。
+- 剧情立绘约定：立绘阶段强制使用图生图（`SubmitTextToImageJob` + `reference_images`），且输出为竖向分辨率（推荐 `720x1280`）。
+- 图生图失败处理：限流/参考图不可访问/任务超时时，必须中断自动流程并询问用户“重试 / 降级 / 终止”。
 
 ---
 
@@ -178,6 +182,8 @@ python scripts/bootstrap_env.py --check-only
 
 ### 9.1 最近 12 条
 
+- 2026-03-02：补充图生图硬规则：`reference_images` 若为本地路径，必须先上传/复用 COS 获取 `https` URL，再调用 `SubmitTextToImageJob`；禁止直接传本地路径。
+- 2026-03-02：修复编排流程问题：阶段1后改为自动执行阶段2-4（仅失败时询问）；并新增 `title` 与文件名一致性校验；剧情立绘改为强制图生图 + 竖向分辨率输出。
 - 2026-03-02：更新剧本创作流程：阶段1支持“AI 自动生成 / 用户关键词”两种大纲来源；`shared.planning` 新增 `planning_source`，关键词模式建议写入 `user_keywords`。
 - 2026-03-02：将“最近 12 条超限处理规则”同步到 README 的文档维护说明，避免团队仅阅读 README 时遗漏。
 - 2026-03-02：新增维护规则：当“最近 12 条”超限时，最旧条目按“先评估长期价值，里程碑归档，否则移除”自动处理。
