@@ -84,6 +84,8 @@ python scripts/bootstrap_env.py --check-only
 - 顶层建议使用 `shared` 作为流水线单一共享数据源。
 - 推荐由各阶段按最小改动读写：
 	- `shared.planning`：阶段1需求摘要、世界观、人设、大纲、剧本形态（`visual_novel`）
+		- 支持大纲来源字段：`planning_source`（`ai_auto` / `user_keywords`）
+		- 当 `planning_source=user_keywords` 时，建议写入 `user_keywords`（`worldview`/`characters`/`outline`）
 	- `shared.style_contract`：双锚点画风约束
 		- `background_style_anchor` / `background_negative_anchor`
 		- `character_style_anchor` / `character_negative_anchor`
@@ -91,6 +93,7 @@ python scripts/bootstrap_env.py --check-only
 	- `shared.asset_manifest`：段落资产映射（`segment_id`、`background_image`、`character_image`）
 	- `shared.pipeline_state`：阶段进度与统计信息
 - 兼容历史脚本：若仅有顶层 `planning`，可读取后迁移到 `shared.planning`。
+- 默认约定：用户未指定大纲来源时，`planning_source=ai_auto`。
 
 ### 5.4 背景配置（background）
 
@@ -175,6 +178,7 @@ python scripts/bootstrap_env.py --check-only
 
 ### 9.1 最近 12 条
 
+- 2026-03-02：更新剧本创作流程：阶段1支持“AI 自动生成 / 用户关键词”两种大纲来源；`shared.planning` 新增 `planning_source`，关键词模式建议写入 `user_keywords`。
 - 2026-03-02：将“最近 12 条超限处理规则”同步到 README 的文档维护说明，避免团队仅阅读 README 时遗漏。
 - 2026-03-02：新增维护规则：当“最近 12 条”超限时，最旧条目按“先评估长期价值，里程碑归档，否则移除”自动处理。
 - 2026-03-02：将本节重构为“最近 N 条 + 长期里程碑”（N=12），并清理已废弃历史噪音。
