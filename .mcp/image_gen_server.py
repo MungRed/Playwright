@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Image Generation MCP Server — Hunyuan Only
-==========================================
-通过 MCP 协议将腾讯混元生图能力暴露给 GitHub Copilot。
-仅保留腾讯混元官方 API（TextToImageLite）调用逻辑。
+Hunyuan MCP Server (Image + Text)
+=================================
+通过 MCP 协议将腾讯混元生图与生文能力暴露给 GitHub Copilot。
 """
 import asyncio
 import base64
@@ -14,6 +13,7 @@ import mimetypes
 import os
 import re
 import time
+from typing import Any, cast
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote, urlparse
@@ -29,6 +29,8 @@ TENCENT_SECRET_KEY = os.getenv("TENCENT_SECRET_KEY", "")
 TENCENT_TOKEN = os.getenv("TENCENT_TOKEN", "")
 HUNYUAN_REGION = os.getenv("HUNYUAN_REGION", "ap-guangzhou")
 HUNYUAN_ENDPOINT = os.getenv("HUNYUAN_ENDPOINT", "aiart.tencentcloudapi.com")
+HUNYUAN_TEXT_ENDPOINT = os.getenv("HUNYUAN_TEXT_ENDPOINT", "hunyuan.tencentcloudapi.com")
+HUNYUAN_TEXT_MODEL = os.getenv("HUNYUAN_TEXT_MODEL", "hunyuan-pro")
 HUNYUAN_RSP_IMG_TYPE = os.getenv("HUNYUAN_RSP_IMG_TYPE", "url")  # url | base64
 HUNYUAN_API_ACTION = os.getenv("HUNYUAN_API_ACTION", "TextToImageLite")
 HUNYUAN_JOB_TIMEOUT_SEC = int(os.getenv("HUNYUAN_JOB_TIMEOUT_SEC", "180"))
@@ -37,7 +39,7 @@ HUNYUAN_RETRY_MAX = int(os.getenv("HUNYUAN_RETRY_MAX", "3"))
 HUNYUAN_RETRY_BASE_SEC = float(os.getenv("HUNYUAN_RETRY_BASE_SEC", "1.5"))
 OUTPUT_DIR = os.getenv(
     "OUTPUT_DIR",
-    str(Path(__file__).parent.parent / "docs" / "scenes")
+    str(Path(__file__).parent.parent / "scripts")
 )
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 STYLE_CONTRACT_FILE = "_style_contract.json"
@@ -97,15 +99,65 @@ server = Server("playwright-image-gen")
 async def list_tools() -> list[types.Tool]:
     return [
         types.Tool(
+            name="generate_text",
+            description="调用腾讯混元生文 ChatCompletions 接口生成文本。",
+            inputSchema={
+                "type": "object",
+                "required": ["prompt"],
+                "properties": {
+                    "prompt": {
+                        "type": "string",
+                        "description": "用户输入提示词（当未传 messages 时必填）。",
+                    },
+                    "system_prompt": {
+                        "type": "string",
+                        "description": "系统提示词（可选）。",
+                    },
+                    "messages": {
+                        "type": "array",
+                        "description": "可选：完整消息数组。每项需包含 role/content。传入后优先于 prompt/system_prompt。",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "role": {"type": "string"},
+                                "content": {"type": "string"},
+                            },
+                        },
+                    },
+                    "model": {
+                        "type": "string",
+                        "description": "模型名，默认读取 HUNYUAN_TEXT_MODEL。",
+                        "default": HUNYUAN_TEXT_MODEL,
+                    },
+                    "temperature": {
+                        "type": "number",
+                        "description": "采样温度（0.0~2.0，可选）。",
+                    },
+                    "top_p": {
+                        "type": "number",
+                        "description": "核采样参数（0.0~1.0，可选）。",
+                    },
+                    "enable_enhancement": {
+                        "type": "boolean",
+                        "description": "功能增强开关（如搜索）。",
+                    },
+                    "retry_max": {
+                        "type": "integer",
+                        "description": "失败重试次数（覆盖环境变量 HUNYUAN_RETRY_MAX）。",
+                    },
+                },
+            },
+        ),
+        types.Tool(
             name="generate_image",
-            description="为 Playwright 剧本阅读器生成场景背景图片（腾讯混元）并保存到 docs/scenes/ 目录。",
+            description="为 Playwright 剧本阅读器生成场景背景图片（腾讯混元）并保存到 scripts/<script_name>/assets/ 目录。",
             inputSchema={
                 "type": "object",
                 "required": ["prompt", "filename"],
                 "properties": {
                     "script_name": {
                         "type": "string",
-                        "description": "剧本名（可选）。传入后会保存到 docs/scenes/<script_name>/ 目录。",
+                        "description": "剧本名（可选）。传入后会保存到 scripts/<script_name>/assets/ 目录。",
                     },
                     "prompt": {
                         "type": "string",
@@ -177,6 +229,39 @@ async def list_tools() -> list[types.Tool]:
 
 @server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
+    if name == "generate_text":
+        prompt = str(arguments.get("prompt", "")).strip()
+        system_prompt = str(arguments.get("system_prompt", "")).strip()
+        model = str(arguments.get("model", HUNYUAN_TEXT_MODEL)).strip() or HUNYUAN_TEXT_MODEL
+        temperature = arguments.get("temperature")
+        top_p = arguments.get("top_p")
+        enable_enhancement = arguments.get("enable_enhancement")
+        retry_max = int(arguments.get("retry_max", HUNYUAN_RETRY_MAX))
+
+        messages = _normalize_chat_messages(arguments.get("messages", []), prompt, system_prompt)
+
+        try:
+            text_result = await _hunyuan_text_with_retries(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                top_p=top_p,
+                enable_enhancement=enable_enhancement,
+                retry_max=max(0, retry_max),
+            )
+            result = {
+                "success": True,
+                "provider": "hunyuan",
+                "api_action": "ChatCompletions",
+                "model": model,
+                "messages": messages,
+                **text_result,
+            }
+        except Exception as exc:
+            result = {"success": False, "error": str(exc)}
+
+        return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
+
     if name != "generate_image":
         raise ValueError(f"未知工具: {name}")
 
@@ -198,7 +283,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
         reference_images_raw = [str(reference_images_raw)]
 
     safe_script_name = _sanitize_script_name(script_name)
-    out_dir = Path(OUTPUT_DIR) / safe_script_name
+    out_dir = Path(OUTPUT_DIR) / safe_script_name / "assets"
     out_dir.mkdir(parents=True, exist_ok=True)
     style_contract_path = out_dir / STYLE_CONTRACT_FILE
     safe_filename = Path(filename).name
@@ -292,6 +377,33 @@ async def _hunyuan_with_retries(
             attempt += 1
 
 
+async def _hunyuan_text_with_retries(
+    model: str,
+    messages: list[dict],
+    temperature: float | None,
+    top_p: float | None,
+    enable_enhancement: bool | None,
+    retry_max: int,
+) -> dict:
+    attempt = 0
+    while True:
+        try:
+            return await _hunyuan_text(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                top_p=top_p,
+                enable_enhancement=enable_enhancement,
+            )
+        except Exception as exc:
+            msg = str(exc)
+            if attempt >= retry_max or not _is_retryable_error(msg):
+                raise
+            sleep_sec = max(0.5, HUNYUAN_RETRY_BASE_SEC * (2 ** attempt))
+            await asyncio.sleep(sleep_sec)
+            attempt += 1
+
+
 def _is_retryable_error(message: str) -> bool:
     low = message.lower()
     markers = [
@@ -299,11 +411,48 @@ def _is_retryable_error(message: str) -> bool:
         "jobnumexceed",
         "limitexceeded",
         "timeout",
+        "enginerequesttimeout",
+        "engineservererror",
+        "engineserverlimitexceeded",
         "temporarily unavailable",
         "connection reset",
         "read timed out",
     ]
     return any(m in low for m in markers)
+
+
+def _normalize_chat_messages(messages_raw: object, prompt: str, system_prompt: str) -> list[dict]:
+    normalized: list[dict] = []
+
+    if isinstance(messages_raw, list) and messages_raw:
+        for idx, item in enumerate(messages_raw, start=1):
+            if not isinstance(item, dict):
+                raise RuntimeError(f"messages[{idx}] 必须是对象")
+
+            role = str(item.get("role") or item.get("Role") or "").strip().lower()
+            content_obj = item.get("content")
+            if content_obj is None:
+                content_obj = item.get("Content")
+            content = str(content_obj or "").strip()
+
+            if role not in {"system", "user", "assistant", "tool"}:
+                raise RuntimeError(f"messages[{idx}].role 非法：{role}")
+            if not content:
+                raise RuntimeError(f"messages[{idx}].content 不能为空")
+
+            normalized.append({"Role": role, "Content": content})
+
+        return normalized
+
+    if system_prompt:
+        normalized.append({"Role": "system", "Content": system_prompt})
+    if prompt:
+        normalized.append({"Role": "user", "Content": prompt})
+
+    if not normalized:
+        raise RuntimeError("prompt 为空且未提供有效 messages")
+
+    return normalized
 
 
 def _infer_scene_type(filename: str, explicit: str) -> str:
@@ -541,6 +690,80 @@ async def _hunyuan(
         img_resp = await client.get(result_image)
         img_resp.raise_for_status()
         return img_resp.content
+
+
+async def _hunyuan_text(
+    model: str,
+    messages: list[dict],
+    temperature: float | None,
+    top_p: float | None,
+    enable_enhancement: bool | None,
+) -> dict:
+    """
+    腾讯混元生文官方 API（ChatCompletions）
+    文档：https://cloud.tencent.com/document/product/1729/105701
+    """
+    if not TENCENT_SECRET_ID or not TENCENT_SECRET_KEY:
+        raise RuntimeError("未设置 TENCENT_SECRET_ID / TENCENT_SECRET_KEY")
+
+    try:
+        from tencentcloud.common import credential
+        from tencentcloud.common.profile.client_profile import ClientProfile
+        from tencentcloud.common.profile.http_profile import HttpProfile
+        from tencentcloud.hunyuan.v20230901 import hunyuan_client, models
+    except Exception as exc:
+        raise RuntimeError("缺少腾讯云 SDK 依赖，请安装 tencentcloud-sdk-python") from exc
+
+    def _invoke() -> dict:
+        cred = credential.Credential(TENCENT_SECRET_ID, TENCENT_SECRET_KEY, TENCENT_TOKEN or None)
+
+        http_profile = HttpProfile()
+        http_profile.endpoint = HUNYUAN_TEXT_ENDPOINT
+
+        client_profile = ClientProfile()
+        client_profile.httpProfile = http_profile
+
+        client = hunyuan_client.HunyuanClient(cred, HUNYUAN_REGION, client_profile)
+
+        payload: dict = {
+            "Model": model,
+            "Messages": messages,
+            "Stream": False,
+        }
+
+        if temperature is not None:
+            payload["Temperature"] = float(temperature)
+        if top_p is not None:
+            payload["TopP"] = float(top_p)
+        if enable_enhancement is not None:
+            payload["EnableEnhancement"] = bool(enable_enhancement)
+
+        req = models.ChatCompletionsRequest()
+        req.from_json_string(json.dumps(payload, ensure_ascii=False))
+
+        resp = client.ChatCompletions(req)
+        resp_payload = json.loads(cast(Any, resp).to_json_string())
+
+        choices = resp_payload.get("Choices") or []
+        text = ""
+        finish_reason = ""
+        if choices:
+            first = choices[0] or {}
+            finish_reason = str(first.get("FinishReason") or "")
+            message = first.get("Message") or {}
+            text = str(message.get("Content") or "")
+
+        return {
+            "text": text,
+            "finish_reason": finish_reason,
+            "usage": resp_payload.get("Usage"),
+            "request_id": resp_payload.get("RequestId"),
+            "id": resp_payload.get("Id"),
+            "note": resp_payload.get("Note"),
+            "raw": resp_payload,
+        }
+
+    return await asyncio.to_thread(_invoke)
 
 
 async def _resolve_reference_images(reference_images: list[str], script_name: str) -> tuple[list[str], list[dict]]:
