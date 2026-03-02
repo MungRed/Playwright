@@ -42,7 +42,7 @@ class ScriptMeta:
 class PygameVNApp:
     def __init__(self):
         pygame.init()
-        pygame.display.set_caption("剧本阅读器（pygame）")
+        pygame.display.set_caption("剧本阅读器")
         flags = pygame.RESIZABLE | pygame.DOUBLEBUF
         self.screen = self._set_window_size(MENU_WIDTH, MENU_HEIGHT, flags)
 
@@ -212,7 +212,7 @@ class PygameVNApp:
 
         title = self.font_title.render("剧本阅读器", True, FG_MAIN)
         self.screen.blit(title, (w // 2 - title.get_width() // 2, 42))
-        subtitle = self.font_main.render("选择要阅读的剧本（pygame）", True, FG_HINT)
+        subtitle = self.font_main.render("选择要阅读的剧本", True, FG_HINT)
         self.screen.blit(subtitle, (w // 2 - subtitle.get_width() // 2, 116))
 
         panel = pygame.Rect(140, 170, w - 280, h - 250)
