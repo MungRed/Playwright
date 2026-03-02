@@ -10,7 +10,7 @@
 ## 2. 项目定位
 
 本项目是基于 `Python + pygame` 的本地**剧本阅读器**，核心能力：
-- 加载 `scripts/*.json` 剧本
+- 加载 `scripts/<script_name>/script.json` 剧本
 - 支持线性阅读
 - 支持多种文字演出效果
 - 提供左侧进度栏（进度与当前段落）
@@ -22,8 +22,9 @@
 
 - `main.py`：程序入口，启动 pygame 应用
 - `engine/pygame_app.py`：主菜单与阅读主循环（事件、渲染、状态机）
-- `docs/scenes/*`：背景图与人物图资源
-- `scripts/*.json`：剧本数据（视觉小说线性叙事）
+- `.mcp/image_gen_server.py`：MCP 服务，封装腾讯混元生文（ChatCompletions）与生图（TextToImageLite / SubmitTextToImageJob）
+- `scripts/<script_name>/script.json`：剧本数据（视觉小说线性叙事）
+- `scripts/<script_name>/assets/*`：该剧本的背景图与人物图资源
 - `scripts/bootstrap_env.py`：本地环境检查与初始化
 
 ---
@@ -55,12 +56,12 @@ python scripts/bootstrap_env.py --check-only
 
 ### 5.0 资源目录约定
 
-- 生图资源按剧本名分目录保存：`docs/scenes/<script_name>/`。
-- MCP 生图工具支持 `script_name` 入参，默认落盘到对应剧本目录。
-- 剧本中的 `background.image` / `character_image` 建议引用该子目录相对路径。
+- 项目结构统一为“每个剧本一个目录”：`scripts/<script_name>/script.json` + `scripts/<script_name>/assets/`。
+- MCP 生图工具支持 `script_name` 入参，默认落盘到 `scripts/<script_name>/assets/`。
+- 剧本中的 `background.image` / `character_image` 建议使用相对路径：`assets/<filename>.png`。
 - 人物设定图（`char_ref_*`）用于风格与角色一致性参考，不直接绑定到 `character_image`。
 - 剧本绑定的人物图应使用剧情立绘（如 `char_<name>_<mood>.png`）。
-- 生图服务会在剧本资源目录维护 `docs/scenes/<script_name>/_style_contract.json` 作为风格契约缓存（style/negative 锚点）。
+- 生图服务会在剧本资源目录维护 `scripts/<script_name>/assets/_style_contract.json` 作为风格契约缓存（style/negative 锚点）。
 
 ### 5.1 线性格式
 
@@ -99,7 +100,7 @@ python scripts/bootstrap_env.py --check-only
 
 ### 5.4 背景配置（background）
 
-- `image`: 背景图路径（推荐放 `docs/scenes/`）
+- `image`: 背景图路径（推荐放 `assets/`，相对 `script.json`）
 - `effects`: 背景效果数组，支持 `fade` 与 `shake`
 - `fade_ms`: 背景切换渐变时长（毫秒）
 - `shake_ms`: 背景震动持续时长（毫秒）
@@ -147,8 +148,11 @@ python scripts/bootstrap_env.py --check-only
 - 仓库不提交真实 API 配置：`.vscode/mcp.json` 已忽略
 - 提交模板：`.vscode/mcp.example.jsonc`
 - 新成员拉取后自行填写本地 `API_KEY`
-- 生图提供商：仅 `hunyuan`（腾讯混元）
-- 按腾讯云官方 `TextToImageLite` 调用，依赖 `tencentcloud-sdk-python`
+- AI 提供商：仅 `hunyuan`（腾讯混元）
+- 生文按腾讯云官方 `ChatCompletions` 调用（Endpoint: `hunyuan.tencentcloudapi.com`，版本 `2023-09-01`）
+- 生图按腾讯云官方 `TextToImageLite / SubmitTextToImageJob` 调用
+- 生文默认模型由 `HUNYUAN_TEXT_MODEL` 控制，生图接口域名由 `HUNYUAN_ENDPOINT` 控制
+- 剧本文本生产约束：阶段1/2（规划与正文）必须通过生文 API 生成，不允许跳过 API 直接离线产出完整文本
 - 生图服务默认支持质量稳定化参数：`scene_type`、`style_anchor`、`negative_anchor`、`enforce_style`、`strict_no_people`、`retry_max`。
 - 生图服务默认支持退避重试：`HUNYUAN_RETRY_MAX`、`HUNYUAN_RETRY_BASE_SEC`。
 - `TextToImageLite` 会做分辨率归一化以降低失败率：横图→`1280x720`、竖图→`720x1280`、方图→`1024x1024`。
@@ -182,21 +186,22 @@ python scripts/bootstrap_env.py --check-only
 
 ### 9.1 最近 12 条
 
+- 2026-03-02：修复运行时“找不到剧本”问题：`engine/pygame_app.py` 读取 `script.json` 改为 `utf-8-sig`，兼容带 BOM 的 UTF-8 文件，避免菜单扫描时被静默跳过。
+- 2026-03-02：项目结构迁移为“每个剧本一个目录”：`scripts/<script_name>/script.json + assets/`；引擎菜单改为扫描子目录 `script.json`，并优先按剧本目录解析相对资源路径。
+- 2026-03-02：更新 `create-script` 与 `orchestrate-script-production`：剧本生成阶段（规划/正文）强制调用生文 API（`mcp_playwright-im_generate_text`），若调用失败需中断并询问“重试/降级/终止”。
+- 2026-03-02：将混元生文默认模型从 `hunyuan-turbos-latest` 切换为 `hunyuan-pro`，同步更新 `.mcp/image_gen_server.py`、`.vscode/mcp.example.jsonc`、`.vscode/mcp.json` 与 README 说明。
+- 2026-03-02：`.mcp/image_gen_server.py` 新增混元生文 `generate_text` 工具，接入 `ChatCompletions`（非流式）并复用统一重试策略；同时在 `.vscode/mcp.example.jsonc` 增加 `HUNYUAN_TEXT_ENDPOINT` / `HUNYUAN_TEXT_MODEL`。
 - 2026-03-02：补充图生图硬规则：`reference_images` 若为本地路径，必须先上传/复用 COS 获取 `https` URL，再调用 `SubmitTextToImageJob`；禁止直接传本地路径。
 - 2026-03-02：修复编排流程问题：阶段1后改为自动执行阶段2-4（仅失败时询问）；并新增 `title` 与文件名一致性校验；剧情立绘改为强制图生图 + 竖向分辨率输出。
 - 2026-03-02：更新剧本创作流程：阶段1支持“AI 自动生成 / 用户关键词”两种大纲来源；`shared.planning` 新增 `planning_source`，关键词模式建议写入 `user_keywords`。
 - 2026-03-02：将“最近 12 条超限处理规则”同步到 README 的文档维护说明，避免团队仅阅读 README 时遗漏。
 - 2026-03-02：新增维护规则：当“最近 12 条”超限时，最旧条目按“先评估长期价值，里程碑归档，否则移除”自动处理。
 - 2026-03-02：将本节重构为“最近 N 条 + 长期里程碑”（N=12），并清理已废弃历史噪音。
-- 2026-03-02：更新剧本编排相关 skill（`create-script`、`orchestrate-script-production`）：新增“文本创作必须原创”约束，禁止参考项目内其他 `scripts/*.json` 正文进行创作。
-- 2026-03-02：同步 README 文档：补充 pygame-only 迁移说明、版本约束与常见排障；并将 `speaker` 字段语义统一为“可选元数据（当前 UI 不单独显示姓名）”。
-- 2026-03-02：完成引擎收口：删除旧版 tkinter 阅读器相关模块，仅保留 `engine/pygame_app.py`。
-- 2026-03-02：完善 pygame 阅读体验：固定中间阅读区（`1280x720`）与左右侧栏外扩布局，统一字体与文本描边策略，主菜单/阅读页切换时保持窗口中心。
-- 2026-03-02：统一演出规则：保留 `typewriter`/`shake`，并固定 `typewriter` 速度为 `55`；段内推进以 `display_break_lines` 为准。
-- 2026-03-02：运行时主流程迁移至 `pygame`（`main.py -> engine/pygame_app.py`），支持线性阅读、分步追加、背景渐变/震动、回退与返回菜单。
+- 2026-03-02：更新剧本编排相关 skill（`create-script`、`orchestrate-script-production`）：新增“文本创作必须原创”约束，禁止参考项目内其他 `scripts/*/script.json` 正文进行创作。
 
 ### 9.2 长期里程碑
 
+- 2026-03-02：运行时主流程迁移至 `pygame`（`main.py -> engine/pygame_app.py`），支持线性阅读、分步追加、背景渐变/震动、回退与返回菜单。
 - 2026-02-28：统一并固化剧本共享数据协议：以 `shared` 作为单一数据源（`planning/style_contract/character_refs/asset_manifest/pipeline_state`），兼容历史 `planning` 迁移。
 - 2026-02-28：升级生图稳定性与风格契约：启用双锚点 `style_contract`、分辨率归一化、限流重试与可选 COS 本地参考图上传复用。
 - 2026-02-27：重构剧本生产流程为四阶段（澄清规划 → 文本+演出 → 人设图 → 场景资产回写），并完成相关 skills 职责拆分与联动。

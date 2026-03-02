@@ -88,9 +88,9 @@ python scripts/bootstrap_env.py --check-only
 - 首次使用可直接运行 `python scripts/bootstrap_env.py`，会自动从模板生成本地配置
 - 然后在 `.vscode/mcp.json` 中填写你自己的 `API_KEY`
 
-### 腾讯混元生图接入
+### 腾讯混元接入（生文 + 生图）
 
-本项目生图能力已精简为仅支持腾讯混元。请在 `.vscode/mcp.json` 配置：
+本项目 AI 能力统一使用腾讯混元（生文 + 生图）。请在 `.vscode/mcp.json` 配置：
 
 ```jsonc
 "API_PROVIDER": "hunyuan",
@@ -98,6 +98,8 @@ python scripts/bootstrap_env.py --check-only
 "TENCENT_SECRET_KEY": "你的腾讯云 SecretKey",
 "TENCENT_TOKEN": "",
 "HUNYUAN_REGION": "ap-guangzhou",
+"HUNYUAN_TEXT_ENDPOINT": "hunyuan.tencentcloudapi.com",
+"HUNYUAN_TEXT_MODEL": "hunyuan-pro",
 "HUNYUAN_ENDPOINT": "aiart.tencentcloudapi.com",
 "HUNYUAN_API_ACTION": "TextToImageLite",
 "HUNYUAN_RSP_IMG_TYPE": "url",
@@ -110,6 +112,7 @@ python scripts/bootstrap_env.py --check-only
 ```
 
 说明：
+- 生文接口：`ChatCompletions`（`hunyuan.tencentcloudapi.com`，版本 `2023-09-01`，默认模型 `hunyuan-pro`）。
 - `TextToImageLite`：混元极速版（文生图）
 - `SubmitTextToImageJob`：混元 3.0 任务接口（可配合图生图）
 - 代码会按 `api_action` 或环境变量 `HUNYUAN_API_ACTION` 选择接口。
@@ -131,7 +134,7 @@ python scripts/bootstrap_env.py --check-only
 用于手动上传本地参考图并输出 URL（同样先查存在再上传）：
 
 ```bash
-python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_sheet_v2.png --script-name 今天也在摸鱼
+python scripts/upload_to_cos.py scripts/今天也在摸鱼/assets/jtr_char_ref_你_sheet_v2.png --script-name 今天也在摸鱼
 ```
 
 常用参数：
@@ -139,11 +142,12 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
 - `--region` / `COS_REGION`
 - `--signed`（生成临时签名 URL，适合私有读桶）
 
-重启 VS Code 后，可直接在对话中让 Agent 生成图片（保存到 `docs/scenes/`）。
+重启 VS Code 后，可直接在对话中让 Agent 生成图片（保存到 `scripts/<剧本名>/assets/`）。
 
-资源目录约定：建议按剧本名分目录保存，使用 `docs/scenes/<剧本名>/`，例如：
-- `docs/scenes/迷失之森/scene_forest_night.png`
-- `docs/scenes/午夜密室/char_detective_tense.png`
+资源目录约定：每个剧本一个目录，结构如下：
+- `scripts/<剧本名>/script.json`
+- `scripts/<剧本名>/assets/scene_forest_night.png`
+- `scripts/<剧本名>/assets/char_detective_tense.png`
 
 ---
 
@@ -214,13 +218,13 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
     "character_negative_anchor": "低质量, 模糊, 水印, 文本, 畸形"
   },
   "character_refs": [
-    { "name": "林澈", "image": "docs/scenes/迷失之森/char_ref_林澈_v1.png" }
+    { "name": "林澈", "image": "assets/char_ref_林澈_v1.png" }
   ],
   "asset_manifest": [
     {
       "segment_id": "s1",
-      "background_image": "docs/scenes/迷失之森/scene_s1.png",
-      "character_image": "docs/scenes/迷失之森/char_林澈_calm.png"
+      "background_image": "assets/scene_s1.png",
+      "character_image": "assets/char_林澈_calm.png"
     }
   ],
   "pipeline_state": {
@@ -240,7 +244,7 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `image` | string | 背景图路径（建议放 `docs/scenes/`） |
+| `image` | string | 背景图路径（建议放 `assets/`，相对 `script.json`） |
 | `effects` | array[string] | 可选：`fade`、`shake` |
 | `fade_ms` | int | 渐变时长（毫秒） |
 | `shake_ms` | int | 震动时长（毫秒） |
@@ -284,13 +288,18 @@ Playwright/
 ├── engine/               # 引擎模块
 │   ├── __init__.py
 │   └── pygame_app.py     # pygame 主流程（菜单+阅读器）
-├── scripts/              # 游戏脚本目录
-│   ├── 迷失之森.json      # 线性示例：神秘森林冒险（11段）
-│   ├── 午夜密室.json      # 线性示例：推理悬疑故事
-│   ├── 今天也在摸鱼.json  # 线性示例：打工人日常搞笑故事
+├── scripts/              # 游戏脚本目录（每个剧本一个文件夹）
+│   ├── 迷失之森/
+│   │   ├── script.json
+│   │   └── assets/
+│   ├── 午夜密室/
+│   │   ├── script.json
+│   │   └── assets/
+│   ├── 今天也在摸鱼/
+│   │   ├── script.json
+│   │   └── assets/
 │   ├── bootstrap_env.py  # 本地环境自检与部署脚本
 │   └── upload_to_cos.py  # COS 参考图上传脚本
-├── docs/scenes/          # 背景图/人物图等资源
 ├── .gitignore
 └── README.md
 ```
@@ -299,7 +308,7 @@ Playwright/
 
 ## 示例脚本
 
-**《迷失之森》**（[scripts/迷失之森.json](scripts/迷失之森.json)）— 线性格式
+**《迷失之森》**（[scripts/迷失之森/script.json](scripts/迷失之森/script.json)）— 线性格式
 
 > 夜幕低垂，你独自踏入一片陌生的神秘森林……
 
@@ -307,7 +316,7 @@ Playwright/
 
 ---
 
-**《午夜密室》**（[scripts/午夜密室.json](scripts/午夜密室.json)）— 线性格式
+**《午夜密室》**（[scripts/午夜密室/script.json](scripts/午夜密室/script.json)）— 线性格式
 
 > 深夜十二点，你被邀请前往废弃庄园调查失踪案……
 
@@ -317,7 +326,7 @@ Playwright/
 
 ## 添加新游戏
 
-1. 在 `scripts/` 目录下新建一个 `.json` 文件
+1. 在 `scripts/` 目录下新建 `<剧本名>/` 文件夹，并创建 `script.json` 与 `assets/`
 2. 按照上方脚本格式编写
 3. 重新启动 `main.py`，主菜单中将自动出现新游戏
 
@@ -327,6 +336,6 @@ Playwright/
 
 - 启动报错 `No module named pygame`：先执行 `pip install pygame`，再运行 `python main.py`。
 - 运行脚本后黑屏/无文本：检查脚本是否包含 `segments` 数组与 `text` 字段。
-- 背景或立绘不显示：优先使用相对项目根目录的路径（如 `docs/scenes/迷失之森/scene_xxx.png`）。
+- 背景或立绘不显示：优先使用相对剧本目录的路径（如 `assets/scene_xxx.png`）。
 - 生图调用失败：检查 `.vscode/mcp.json` 中腾讯云与 COS 相关配置是否完整。
 - 环境初始化失败：运行 `python scripts/bootstrap_env.py --check-only` 查看失败项，再按提示修复。
