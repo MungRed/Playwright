@@ -197,9 +197,15 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
   "planning": {
     "requirements_summary": "...",
     "script_form": "visual_novel",
+    "planning_source": "ai_auto",
     "worldview": "...",
     "characters": [{ "name": "林澈", "profile": "..." }],
-    "outline": [{ "chapter": 1, "summary": "..." }]
+    "outline": [{ "chapter": 1, "summary": "..." }],
+    "user_keywords": {
+      "worldview": ["废土", "高塔城"],
+      "characters": ["失忆女主", "机械师导师"],
+      "outline": ["试炼", "背叛", "真相反转"]
+    }
   },
   "style_contract": {
     "background_style_anchor": "anime visual novel background, clean lineart",
@@ -225,6 +231,10 @@ python scripts/upload_to_cos.py docs/scenes/今天也在摸鱼/jtr_char_ref_你_
 ```
 
 说明：历史脚本若使用顶层 `planning` 仍可兼容读取，建议逐步迁移到 `shared.planning`。
+
+大纲来源约定：
+- `planning_source=ai_auto`：由 AI 自动生成世界观/人设/大纲（默认模式）。
+- `planning_source=user_keywords`：用户先提供关键词（世界观/人物/大纲），AI 在关键词约束下扩展为完整规划。
 
 ### 背景配置（`background`）
 

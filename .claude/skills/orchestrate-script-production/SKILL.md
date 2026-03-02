@@ -29,9 +29,15 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
       "planning": {
          "requirements_summary": "...",
          "script_form": "visual_novel",
+         "planning_source": "ai_auto",
          "worldview": "...",
          "characters": [{ "name": "林澈", "profile": "..." }],
-         "outline": [{ "chapter": 1, "summary": "..." }]
+         "outline": [{ "chapter": 1, "summary": "..." }],
+         "user_keywords": {
+            "worldview": ["关键词A"],
+            "characters": ["关键词B"],
+            "outline": ["关键词C"]
+         }
       },
       "style_contract": {
          "background_style_anchor": "anime visual novel background, clean lineart, soft global illumination, cinematic composition",
@@ -64,9 +70,11 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
 1. 读取输入与目标：
    - 项目名 / 剧本名 / 风格 / 篇幅 / 目标受众
    - 偏好类型：视觉小说（线性叙事）
+   - 大纲来源模式：`ai_auto` 或 `user_keywords`
+   - 若为 `user_keywords`，收集关键词包（世界观 / 人设 / 大纲）
 
 2. 阶段化执行（逐步确认）：
-   - 阶段1（需求澄清与方案）：通过对话补齐缺失信息，调用 `create-script` 并写入 `shared.planning`（明确传入“原创创作，不参考其他剧本正文”约束）
+   - 阶段1（需求澄清与方案）：通过对话补齐缺失信息，先确认大纲来源模式（AI 自动或用户关键词），调用 `create-script` 并写入 `shared.planning`（明确传入“原创创作，不参考其他剧本正文”约束）
    - 阶段2（文本剧本）：调用 `create-script` 生成基础剧本，再调用 `configure-script-presentation` 添加 `effect`/`speed`/`display_break_lines`，并更新 `shared.pipeline_state`（其中 `typewriter` 速度固定为 `55`；文本阶段保持原创约束）
    - 阶段3（人物设定图）：调用 `generate-character-images` 按 `shared.planning.characters` 产出设定图并写入 `shared.character_refs`
    - 阶段4（场景资产与回写）：调用 `generate-scene-assets` 基于 `shared` 生成 `shared.asset_manifest`，再调用 `attach-script-assets` 回写到剧本
@@ -100,7 +108,13 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
       "mode": "planning",
       "style": "悬疑",
       "length": "short",
-      "script_form": "visual_novel"
+      "script_form": "visual_novel",
+      "planning_source": "user_keywords",
+      "user_keywords": {
+         "worldview": ["迷雾森林", "古代遗迹"],
+         "characters": ["谨慎侦察员", "失踪向导"],
+         "outline": ["进入禁区", "线索反转", "出口抉择"]
+      }
    },
    "output": {
       "requirements_summary": "...",
@@ -108,6 +122,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
       "characters": [{ "name": "林澈", "profile": "..." }],
       "outline": [{ "chapter": 1, "summary": "..." }],
       "script_form": "visual_novel",
+      "planning_source": "user_keywords",
       "shared_written": ["planning", "pipeline_state"]
    }
 }
@@ -194,6 +209,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
 
 4. 结果汇总：
    - 需求摘要（风格、篇幅、剧本形态）
+   - 大纲来源（`ai_auto` / `user_keywords`）与关键词使用说明
    - 文本剧本路径（含演出效果）
    - 人物设定图路径列表
    - 资产生成/复用统计与最终剧本路径
@@ -228,6 +244,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
 
 - 编排 skill 只负责流程协调与阶段衔接；允许校验 `shared` 字段完整性，但不直接改写 `segments` 业务内容。
 - 阶段1必须先对话澄清，不得在关键信息缺失时直接进入生图。
+- 用户选择 `user_keywords` 时，阶段1必须先收齐关键词再进入文本创作；关键词不足则先补问。
 - 阶段2产物不得包含 `background.image` / `character_image`。
 - 任一阶段失败时，停止后续阶段并输出最小可恢复建议。
 - 阶段4默认优先复用，目标是减少不必要 API 调用。
