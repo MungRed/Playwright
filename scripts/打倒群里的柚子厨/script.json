@@ -1,0 +1,668 @@
+{
+  "title": "打倒群里的柚子厨",
+  "description": "欢乐吐槽群里的“柚子厨风波”，在笑闹中走向和解。",
+  "segments": [
+    {
+      "text": "哎，这柚子厨又在群里发柚子图片了，每天都是柚子，我都看腻了。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "张大明",
+      "next": "1",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      },
+      "character_image": "assets/char_张大明_calm_v2.png"
+    },
+    {
+      "text": "是啊，我也觉得，感觉他生活中就只有柚子一样。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "李晓芳",
+      "next": "2",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      },
+      "character_image": "assets/char_李晓芳_calm_v2.png"
+    },
+    {
+      "text": "我倒是好奇，他到底有多喜欢柚子啊？",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "王强",
+      "next": "3",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      },
+      "character_image": "assets/char_王强_calm_v1.png"
+    },
+    {
+      "text": "你们看，他又发了一篇柚子的营养价值，真是没完没了了。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "赵小美",
+      "next": "4",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      },
+      "character_image": "assets/char_赵小美_calm_v1.png"
+    },
+    {
+      "text": "群里的气氛开始有些微妙，大家对这个“柚子厨”有些厌倦了。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "旁白",
+      "next": "5",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      }
+    },
+    {
+      "text": "大家看看，这个柚子的果肉多饱满，真是太好吃了！",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "柚子厨",
+      "next": "6",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      },
+      "character_image": "assets/char_柚子厨_calm_v1.png"
+    },
+    {
+      "text": "（私信李晓芳）这柚子厨真是的，每天都是柚子，我都想屏蔽他了。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "张大明",
+      "next": "7",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      },
+      "character_image": "assets/char_张大明_calm_v2.png"
+    },
+    {
+      "text": "（私信张大明）我也是，但是屏蔽他又觉得不太好，毕竟他是群里的活跃分子。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "李晓芳",
+      "next": "8",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      },
+      "character_image": "assets/char_李晓芳_calm_v2.png"
+    },
+    {
+      "text": "（在群里发）柚子厨，你能不能换个话题啊？我们都被你刷屏了。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "王强",
+      "next": "9",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      },
+      "character_image": "assets/char_王强_calm_v1.png"
+    },
+    {
+      "text": "（附和）是啊，虽然柚子很好，但是我们也不能天天吃啊。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "赵小美",
+      "next": "10",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      },
+      "character_image": "assets/char_赵小美_calm_v1.png"
+    },
+    {
+      "text": "我只是想分享我喜欢的柚子，没想到大家会这么反感。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "柚子厨",
+      "next": "11",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      },
+      "character_image": "assets/char_柚子厨_calm_v1.png"
+    },
+    {
+      "text": "柚子厨有些失落，他没想到自己的热情会引来大家的反感。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "旁白",
+      "next": "12",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      }
+    },
+    {
+      "text": "（想了想）要不我们搞个“柚子主题日”吧？这样柚子厨也能满足，我们也觉得新鲜。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "张大明",
+      "next": "13",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      },
+      "character_image": "assets/char_张大明_calm_v2.png"
+    },
+    {
+      "text": "这个主意不错，我们可以一起参与，让柚子厨看看柚子也可以玩出新花样。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "李晓芳",
+      "next": "14",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      },
+      "character_image": "assets/char_李晓芳_calm_v2.png"
+    },
+    {
+      "text": "好啊，我赞成，这样群里的气氛也会活跃一些。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "王强",
+      "next": "15",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      },
+      "character_image": "assets/char_王强_calm_v1.png"
+    },
+    {
+      "text": "那我们就这么办吧，到时候让柚子厨也参与进来。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "赵小美",
+      "next": "16",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      },
+      "character_image": "assets/char_赵小美_calm_v1.png"
+    },
+    {
+      "text": "大家开始策划“柚子主题日”，气氛逐渐变得轻松起来。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "旁白",
+      "next": "17",
+      "background": {
+        "image": "assets/scene_group_chat_tension.png"
+      }
+    },
+    {
+      "text": "（看到群里的消息）“柚子主题日”？这是为我准备的吗？",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "柚子厨",
+      "next": "18",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_柚子厨_excited_v1.png"
+    },
+    {
+      "text": "是啊，柚子厨，我们想让你知道，柚子也可以有很多玩法。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "张大明",
+      "next": "19",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_张大明_calm_v2.png"
+    },
+    {
+      "text": "对啊，你也可以分享一些柚子的其他用途，不只是吃的。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "李晓芳",
+      "next": "20",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_李晓芳_calm_v2.png"
+    },
+    {
+      "text": "我们可以一起做柚子料理，或者柚子手工艺品。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "王强",
+      "next": "21",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_王强_calm_v1.png"
+    },
+    {
+      "text": "还可以举办柚子知识问答，看谁对柚子了解最多。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "赵小美",
+      "next": "22",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_赵小美_calm_v1.png"
+    },
+    {
+      "text": "柚子厨听了大家的话，心里暖暖的，他决定好好准备一下。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "旁白",
+      "next": "23",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      }
+    },
+    {
+      "text": "谢谢大家，我会准备一些有趣的柚子小知识，到时候和大家分享。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "柚子厨",
+      "next": "24",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_柚子厨_excited_v1.png"
+    },
+    {
+      "text": "太好了，那我们就期待你的表现了！",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "张大明",
+      "next": "25",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_张大明_calm_v2.png"
+    },
+    {
+      "text": "是啊，柚子厨，你一定会做得很好的。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "李晓芳",
+      "next": "26",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_李晓芳_calm_v2.png"
+    },
+    {
+      "text": "到时候我们可以一起玩得开心一些。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "王强",
+      "next": "27",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_王强_calm_v1.png"
+    },
+    {
+      "text": "对啊，让我们的群里充满欢声笑语。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "赵小美",
+      "next": "28",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_赵小美_calm_v1.png"
+    },
+    {
+      "text": "“柚子主题日”当天，群里的气氛非常热烈，大家都积极参与其中。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "旁白",
+      "next": "29",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      }
+    },
+    {
+      "text": "大家看，这是我做的柚子手工艺品，是不是很有趣？",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "柚子厨",
+      "next": "30",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_柚子厨_excited_v1.png"
+    },
+    {
+      "text": "哇，真的很好看！你手真巧！",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "张大明",
+      "next": "31",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_张大明_calm_v2.png"
+    },
+    {
+      "text": "这个柚子料理也很好吃，没想到柚子还能这么玩。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "李晓芳",
+      "next": "32",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_李晓芳_calm_v2.png"
+    },
+    {
+      "text": "是啊，今天的活动真的很成功，大家都玩得很开心。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "王强",
+      "next": "33",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_王强_calm_v1.png"
+    },
+    {
+      "text": "最重要的是，我们和柚子厨之间的误会也解开了。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "赵小美",
+      "next": "34",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      },
+      "character_image": "assets/char_赵小美_calm_v1.png"
+    },
+    {
+      "text": "通过“柚子主题日”，大家不仅发现了柚子的多种玩法，还增进了彼此之间的友谊。",
+      "effect": "typewriter",
+      "speed": 55,
+      "speaker": "旁白",
+      "background": {
+        "image": "assets/scene_group_chat_festival.png"
+      }
+    }
+  ],
+  "shared": {
+    "planning": {
+      "requirements_summary": "本项目旨在创作一部以网络群聊中的搞笑日常为题材的视觉小说，主要面向成年受众。故事围绕一群性格迥异的群友展开，通过一系列轻松幽默的事件，展现他们之间的友情与日常趣事，最终达成和解与理解。",
+      "script_form": "visual_novel",
+      "planning_source": "ai_auto",
+      "worldview": "故事发生在一个名为“欢乐吐槽群”的网络群聊中，群成员来自不同的背景，但都热爱生活，喜欢在群里分享各种趣事和吐槽。群里有一个被称为“柚子厨”的成员，因其对柚子的极端热爱和频繁提及而闻名，但也因此引发了不少群友的不满。",
+      "characters": [
+        {
+          "name": "张大明",
+          "profile": "群主，性格开朗，善于调解矛盾，但有时也显得有些优柔寡断。"
+        },
+        {
+          "name": "李晓芳",
+          "profile": "群里的活跃分子，喜欢开玩笑，常常制造各种笑料。"
+        },
+        {
+          "name": "王强",
+          "profile": "理性派，常常用逻辑分析问题，但偶尔也会被群里的氛围带偏。"
+        },
+        {
+          "name": "赵小美",
+          "profile": "温柔善良，常常扮演和事佬的角色，深受群友喜爱。"
+        },
+        {
+          "name": "柚子厨",
+          "profile": "群里的话题人物，对柚子有着近乎痴迷的热爱，言行举止常常引发群友的爆笑与无奈。"
+        }
+      ],
+      "outline": [
+        {
+          "chapter": 1,
+          "summary": "群里新来了一个成员，大家热情欢迎，但很快发现这个新成员也是个“柚子厨”。"
+        },
+        {
+          "chapter": 2,
+          "summary": "张大明组织了一次线上聚会，试图让群友们更好地了解彼此，但过程中“柚子厨”不断提及柚子，导致气氛一度尴尬。"
+        },
+        {
+          "chapter": 3,
+          "summary": "李晓芳策划了一场“反柚子厨”行动，试图通过一系列搞笑的方式让“柚子厨”意识到自己的问题。"
+        },
+        {
+          "chapter": 4,
+          "summary": "王强在一次讨论中用科学的方法分析了柚子的营养价值，反而引发了更大的争论。"
+        },
+        {
+          "chapter": 5,
+          "summary": "赵小美站出来劝解双方，提议大家互相理解，尊重彼此的爱好。"
+        },
+        {
+          "chapter": 6,
+          "summary": "“柚子厨”在一次意外中帮助了群里的成员，大家开始重新审视对他的看法。"
+        },
+        {
+          "chapter": 7,
+          "summary": "张大明决定举办一次“柚子主题日”，让“柚子厨”成为主角，满足他的愿望，同时也增进群友间的感情。"
+        },
+        {
+          "chapter": 8,
+          "summary": "在“柚子主题日”活动中，大家通过各种有趣的游戏和活动，增进了彼此的了解和友谊。"
+        },
+        {
+          "chapter": 9,
+          "summary": "最终，“柚子厨”也意识到自己过于沉迷柚子，开始尝试接受其他食物，群友们也更加包容和理解他。"
+        },
+        {
+          "chapter": 10,
+          "summary": "故事以一场欢乐的线上派对结束，大家在欢声笑语中结束了这次特别的经历。"
+        }
+      ]
+    },
+    "drafts": {
+      "planning_draft_path": "scripts/打倒群里的柚子厨/drafts/planning_draft.md",
+      "novel_draft_path": "scripts/打倒群里的柚子厨/drafts/novel_draft.md"
+    },
+    "pipeline_state": {
+      "stage": "4",
+      "updated_at": "2026-03-02",
+      "planning_draft_path": "scripts/打倒群里的柚子厨/drafts/planning_draft.md",
+      "includes_text": true,
+      "includes_presentation": true,
+      "includes_asset_fields": false,
+      "updated_segments": 35,
+      "novel_draft_path": "scripts/打倒群里的柚子厨/drafts/novel_draft.md",
+      "generated_character_ref_count": 5,
+      "generated_background_count": 2,
+      "generated_character_pose_count": 6,
+      "reused_asset_count": 27,
+      "used_character_ref_to_generate_portrait": true
+    },
+    "character_refs": [
+      {
+        "name": "张大明",
+        "image": "assets/char_ref_张大明_sheet_v2.png"
+      },
+      {
+        "name": "李晓芳",
+        "image": "assets/char_ref_李晓芳_sheet_v2.png"
+      },
+      {
+        "name": "王强",
+        "image": "assets/char_ref_王强_sheet_v1.png"
+      },
+      {
+        "name": "赵小美",
+        "image": "assets/char_ref_赵小美_sheet_v1.png"
+      },
+      {
+        "name": "柚子厨",
+        "image": "assets/char_ref_柚子厨_sheet_v1.png"
+      }
+    ],
+    "asset_manifest": [
+      {
+        "segment_id": "0",
+        "background_image": "assets/scene_group_chat_tension.png",
+        "character_image": "assets/char_张大明_calm_v2.png"
+      },
+      {
+        "segment_id": "1",
+        "background_image": "assets/scene_group_chat_tension.png",
+        "character_image": "assets/char_李晓芳_calm_v2.png"
+      },
+      {
+        "segment_id": "2",
+        "background_image": "assets/scene_group_chat_tension.png",
+        "character_image": "assets/char_王强_calm_v1.png"
+      },
+      {
+        "segment_id": "3",
+        "background_image": "assets/scene_group_chat_tension.png",
+        "character_image": "assets/char_赵小美_calm_v1.png"
+      },
+      {
+        "segment_id": "4",
+        "background_image": "assets/scene_group_chat_tension.png"
+      },
+      {
+        "segment_id": "5",
+        "background_image": "assets/scene_group_chat_tension.png",
+        "character_image": "assets/char_柚子厨_calm_v1.png"
+      },
+      {
+        "segment_id": "6",
+        "background_image": "assets/scene_group_chat_tension.png",
+        "character_image": "assets/char_张大明_calm_v2.png"
+      },
+      {
+        "segment_id": "7",
+        "background_image": "assets/scene_group_chat_tension.png",
+        "character_image": "assets/char_李晓芳_calm_v2.png"
+      },
+      {
+        "segment_id": "8",
+        "background_image": "assets/scene_group_chat_tension.png",
+        "character_image": "assets/char_王强_calm_v1.png"
+      },
+      {
+        "segment_id": "9",
+        "background_image": "assets/scene_group_chat_tension.png",
+        "character_image": "assets/char_赵小美_calm_v1.png"
+      },
+      {
+        "segment_id": "10",
+        "background_image": "assets/scene_group_chat_tension.png",
+        "character_image": "assets/char_柚子厨_calm_v1.png"
+      },
+      {
+        "segment_id": "11",
+        "background_image": "assets/scene_group_chat_tension.png"
+      },
+      {
+        "segment_id": "12",
+        "background_image": "assets/scene_group_chat_tension.png",
+        "character_image": "assets/char_张大明_calm_v2.png"
+      },
+      {
+        "segment_id": "13",
+        "background_image": "assets/scene_group_chat_tension.png",
+        "character_image": "assets/char_李晓芳_calm_v2.png"
+      },
+      {
+        "segment_id": "14",
+        "background_image": "assets/scene_group_chat_tension.png",
+        "character_image": "assets/char_王强_calm_v1.png"
+      },
+      {
+        "segment_id": "15",
+        "background_image": "assets/scene_group_chat_tension.png",
+        "character_image": "assets/char_赵小美_calm_v1.png"
+      },
+      {
+        "segment_id": "16",
+        "background_image": "assets/scene_group_chat_tension.png"
+      },
+      {
+        "segment_id": "17",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_柚子厨_excited_v1.png"
+      },
+      {
+        "segment_id": "18",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_张大明_calm_v2.png"
+      },
+      {
+        "segment_id": "19",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_李晓芳_calm_v2.png"
+      },
+      {
+        "segment_id": "20",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_王强_calm_v1.png"
+      },
+      {
+        "segment_id": "21",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_赵小美_calm_v1.png"
+      },
+      {
+        "segment_id": "22",
+        "background_image": "assets/scene_group_chat_festival.png"
+      },
+      {
+        "segment_id": "23",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_柚子厨_excited_v1.png"
+      },
+      {
+        "segment_id": "24",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_张大明_calm_v2.png"
+      },
+      {
+        "segment_id": "25",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_李晓芳_calm_v2.png"
+      },
+      {
+        "segment_id": "26",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_王强_calm_v1.png"
+      },
+      {
+        "segment_id": "27",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_赵小美_calm_v1.png"
+      },
+      {
+        "segment_id": "28",
+        "background_image": "assets/scene_group_chat_festival.png"
+      },
+      {
+        "segment_id": "29",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_柚子厨_excited_v1.png"
+      },
+      {
+        "segment_id": "30",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_张大明_calm_v2.png"
+      },
+      {
+        "segment_id": "31",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_李晓芳_calm_v2.png"
+      },
+      {
+        "segment_id": "32",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_王强_calm_v1.png"
+      },
+      {
+        "segment_id": "33",
+        "background_image": "assets/scene_group_chat_festival.png",
+        "character_image": "assets/char_赵小美_calm_v1.png"
+      },
+      {
+        "segment_id": "34",
+        "background_image": "assets/scene_group_chat_festival.png"
+      }
+    ]
+  }
+}

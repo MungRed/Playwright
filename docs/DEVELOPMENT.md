@@ -62,6 +62,8 @@ python scripts/bootstrap_env.py --check-only
 - 人物设定图（`char_ref_*`）用于风格与角色一致性参考，不直接绑定到 `character_image`。
 - 剧本绑定的人物图应使用剧情立绘（如 `char_<name>_<mood>.png`）。
 - 生图服务会在剧本资源目录维护 `scripts/<script_name>/assets/_style_contract.json` 作为风格契约缓存（style/negative 锚点）。
+- 文本生产新增草稿落盘约定：阶段1/2 生文原文先保存到 `scripts/<script_name>/drafts/`，再由 agent 转换为 `script.json`。
+- 推荐草稿文件：`planning_draft.md`（规划）、`novel_draft.md`（正文）。
 
 ### 5.1 线性格式
 
@@ -116,6 +118,7 @@ python scripts/bootstrap_env.py --check-only
 - 中间：阅读主区（固定 `1280x720`，背景层 + 正文直出）
 - 右侧：人物栏（立绘显示 + 操作提示）
 - 窗口策略：主菜单固定 `1280x720`；进入阅读后窗口扩展为“左栏 + 中间阅读区 + 右栏”，且左右栏位于中间阅读区外侧（最小宽度 `220 + 1280 + 260`）。
+- 主菜单剧本列表支持滚动浏览：当剧本数量超过可视卡片数时，可使用鼠标滚轮或键盘 `↑/↓` 滚动，右侧显示滚动条。
 
 ### 6.2 背景图渲染约定
 
@@ -152,7 +155,8 @@ python scripts/bootstrap_env.py --check-only
 - 生文按腾讯云官方 `ChatCompletions` 调用（Endpoint: `hunyuan.tencentcloudapi.com`，版本 `2023-09-01`）
 - 生图按腾讯云官方 `TextToImageLite / SubmitTextToImageJob` 调用
 - 生文默认模型由 `HUNYUAN_TEXT_MODEL` 控制，生图接口域名由 `HUNYUAN_ENDPOINT` 控制
-- 剧本文本生产约束：阶段1/2（规划与正文）必须通过生文 API 生成，不允许跳过 API 直接离线产出完整文本
+- 剧本文本生产约束：阶段1/2（规划与正文）必须通过生文 API 生成，不允许跳过 API 直接离线产出完整文本。
+- 文本生成流程约束：不要求生文 API 直接返回完整 JSON；应先生成传统文本草稿，再由本地 agent 转换为 `segments` 结构，减少 token 浪费并提升创作自由度。
 - 生图服务默认支持质量稳定化参数：`scene_type`、`style_anchor`、`negative_anchor`、`enforce_style`、`strict_no_people`、`retry_max`。
 - 生图服务默认支持退避重试：`HUNYUAN_RETRY_MAX`、`HUNYUAN_RETRY_BASE_SEC`。
 - `TextToImageLite` 会做分辨率归一化以降低失败率：横图→`1280x720`、竖图→`720x1280`、方图→`1024x1024`。
@@ -186,6 +190,8 @@ python scripts/bootstrap_env.py --check-only
 
 ### 9.1 最近 12 条
 
+- 2026-03-02：调整剧本生成流程：阶段1/2改为“生文 API 先产出传统文本草稿并落盘（`scripts/<script_name>/drafts/`），再由 agent 转换为 `script.json`”，不再要求生文直接产出完整 JSON。
+- 2026-03-02：主菜单剧本列表改为可滚动，移除“最多显示约 5 个剧本”的可视限制；支持鼠标滚轮与 `↑/↓` 键滚动，并新增滚动条与底部提示文案。
 - 2026-03-02：修复运行时“找不到剧本”问题：`engine/pygame_app.py` 读取 `script.json` 改为 `utf-8-sig`，兼容带 BOM 的 UTF-8 文件，避免菜单扫描时被静默跳过。
 - 2026-03-02：项目结构迁移为“每个剧本一个目录”：`scripts/<script_name>/script.json + assets/`；引擎菜单改为扫描子目录 `script.json`，并优先按剧本目录解析相对资源路径。
 - 2026-03-02：更新 `create-script` 与 `orchestrate-script-production`：剧本生成阶段（规划/正文）强制调用生文 API（`mcp_playwright-im_generate_text`），若调用失败需中断并询问“重试/降级/终止”。
@@ -196,8 +202,6 @@ python scripts/bootstrap_env.py --check-only
 - 2026-03-02：更新剧本创作流程：阶段1支持“AI 自动生成 / 用户关键词”两种大纲来源；`shared.planning` 新增 `planning_source`，关键词模式建议写入 `user_keywords`。
 - 2026-03-02：将“最近 12 条超限处理规则”同步到 README 的文档维护说明，避免团队仅阅读 README 时遗漏。
 - 2026-03-02：新增维护规则：当“最近 12 条”超限时，最旧条目按“先评估长期价值，里程碑归档，否则移除”自动处理。
-- 2026-03-02：将本节重构为“最近 N 条 + 长期里程碑”（N=12），并清理已废弃历史噪音。
-- 2026-03-02：更新剧本编排相关 skill（`create-script`、`orchestrate-script-production`）：新增“文本创作必须原创”约束，禁止参考项目内其他 `scripts/*/script.json` 正文进行创作。
 
 ### 9.2 长期里程碑
 
