@@ -104,9 +104,14 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
       - 阶段2超长稿策略：默认采用“分批续写 + 同一 `session_id`”模式；若上下文接近上限，启用 `context_files`（`planning_draft` 与已生成片段）并附加 `FileIDs` 继续续写，后续批次保持 `carry_forward_file_ids=true`。
       - 分批续写提示词默认要求“自然承接前文”，不强制每批结尾制造悬念；只有用户明确指定章节钩子时，才在对应批次增加悬念约束。
    - 阶段2结束后必须执行一致性校验：`title` 应与剧本文件名（不含 `.json`）一致；不一致则自动修正为文件名
+   - 阶段2结束后必须先执行“严格质量门禁”（新增）：
+      - 调用 `review-script` 严格模式生成 `review.json`
+      - 根据硬门槛判定：`overall_score>=6.8` 且 `literary_quality>=6` 且 `character_development>=6` 且 `creativity_theme>=6`
+      - 不达标则回到阶段2执行“定向重写”，最多 2 轮；每轮后复评
+      - 达标后才允许进入阶段3/4
    - 阶段2结束后审稿分支：
-      - 若 `review_after_stage2=true`：暂停自动链路，提示用户检查 `novel_draft` 与 `script.json` 是否符合要求；用户可选择“按反馈重生成阶段2”或“确认通过继续阶段3/4”。
-      - 若 `review_after_stage2=false`：不询问，自动继续阶段3与阶段4。
+      - 若 `review_after_stage2=true`：暂停自动链路，提示用户检查 `novel_draft`、`script.json`、`review.json`；用户可选择“按反馈重生成阶段2”或“确认通过继续阶段3/4”。
+      - 若 `review_after_stage2=false`：质量门禁通过后自动继续阶段3与阶段4。
    - 阶段3（人物设定图）：调用 `generate-character-images` 按 `shared.planning.characters` 产出设定图并写入 `shared.character_refs`
    - 阶段4（场景资产与回写）：调用 `generate-scene-assets` 基于 `shared` 生成 `shared.asset_manifest`，再调用 `attach-script-assets` 回写到剧本
    - 仅当任一阶段失败或关键参数缺失时，再询问用户意见；其余场景默认自动继续执行
