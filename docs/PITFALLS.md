@@ -723,7 +723,26 @@ shutil.rmtree(os.path.dirname(src))  # 删除多余目录
 
 **适用场景**: 剧本名称包含全角破折号 `——`、省略号 `……` 等特殊字符时，所有生图 API 调用后应核对落盘路径。
 
+### 1.5 PowerShell 终端中含全角破折号的路径在 git pathspec 中被截断
+
+**问题**:
+在 PowerShell 中执行 `git add "scripts/励志打遍天下无敌手——我是指街霸6/"` 时，报错 `fatal: pathspec did not match any files`，全角破折号 `——` 被截断，实际传给 git 的路径变为 `scripts/励志打遍天下无敌手我是指街霸6/`。
+
+**原因**:
+PowerShell 终端对某些 Unicode 字符（全角破折号 U+2014/U+2015）在拼接 argv 时发生编码截断，git 接收到的路径不完整。
+
+**正确做法**:
+用 Python subprocess 以列表形式传参，绕过 shell 字符串解析：
+
+```python
+import subprocess
+subprocess.run(["git", "add", "scripts/励志打遍天下无敌手——我是指街霸6/"],
+               cwd=r"d:\AIProject\Playwright")
+```
+
+**适用场景**: 任何需要在 PowerShell 终端中对含全角特殊字符的路径执行 `git add / mv / rm` 等操作时。
+
 ---
 
-**最后更新**: 2026-03-03
+**最后更新**: 2026-03-05
 **文档版本**: v1.0
