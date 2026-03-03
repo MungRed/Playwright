@@ -263,6 +263,17 @@ async def list_tools() -> list[types.Tool]:
                         "description": "图生图参考图列表（仅 SubmitTextToImageJob 可用，最多3项）。支持公网 URL，或在启用 COS_AUTO_UPLOAD_ENABLED 时传本地路径自动上传。",
                         "items": {"type": "string"},
                     },
+                    "revise_prompt": {
+                        "type": "boolean",
+                        "description": "是否开启AI自动优化提示词（仅 SubmitTextToImageJob 可用，默认 true）。开启后模型会自动优化提示词以提升生成质量。对应API参数：Revise",
+                        "default": True,
+                    },
+                    "logo_add": {
+                        "type": "integer",
+                        "description": "是否添加标识水印（仅 SubmitTextToImageJob 可用，默认 0）。0-不添加，1-添加。",
+                        "enum": [0, 1],
+                        "default": 0,
+                    },
                 },
             },
         )
@@ -401,6 +412,8 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
     reference_images_raw = arguments.get("reference_images", []) or []
     if not isinstance(reference_images_raw, list):
         reference_images_raw = [str(reference_images_raw)]
+    revise_prompt = bool(arguments.get("revise_prompt", True))
+    logo_add = int(arguments.get("logo_add", 0))
 
     safe_script_name = _sanitize_script_name(script_name)
     out_dir = Path(OUTPUT_DIR) / safe_script_name / "assets"
@@ -437,6 +450,8 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             height=normalized_height,
             api_action=api_action,
             reference_images=resolved_refs,
+            revise_prompt=revise_prompt,
+            logo_add=logo_add,
             retry_max=max(0, retry_max),
         )
         out_path.write_bytes(img_bytes)
@@ -475,6 +490,8 @@ async def _hunyuan_with_retries(
     height: int,
     api_action: str,
     reference_images: list[str],
+    revise_prompt: bool,
+    logo_add: int,
     retry_max: int,
 ) -> bytes:
     attempt = 0
@@ -487,6 +504,8 @@ async def _hunyuan_with_retries(
                 height,
                 api_action=api_action,
                 reference_images=reference_images,
+                revise_prompt=revise_prompt,
+                logo_add=logo_add,
             )
         except Exception as exc:
             msg = str(exc)
@@ -1018,9 +1037,11 @@ async def _hunyuan(
     height: int,
     api_action: str,
     reference_images: list[str],
+    revise_prompt: bool,
+    logo_add: int,
 ) -> bytes:
     """
-    腾讯混元官方 API（TextToImageLite）
+    腾讯混元官方 API（TextToImageLite / SubmitTextToImageJob）
     文档：https://cloud.tencent.com/document/product/1668/120721
     """
     if not TENCENT_SECRET_ID or not TENCENT_SECRET_KEY:
@@ -1068,6 +1089,10 @@ async def _hunyuan(
         req.Resolution = f"{width}:{height}"
         if reference_images:
             req.Images = reference_images[:3]
+
+        # 设置提示词优化与水印参数
+        req.Revise = 1 if revise_prompt else 0  # SDK中实际属性名是 Revise
+        req.LogoAdd = logo_add
 
         submit_resp = client.SubmitTextToImageJob(req)
         job_id = str(getattr(submit_resp, "JobId", ""))

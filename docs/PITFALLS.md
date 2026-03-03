@@ -655,5 +655,30 @@ with open('script.json', 'w', encoding='utf-8') as f:
 
 ---
 
+### 5.5 混元3.0支持AI自动优化提示词
+
+**功能**:
+混元3.0生图接口（`SubmitTextToImageJob`）支持 `Revise` 参数（工具层面为 `revise_prompt`）自动优化提示词，开启后AI会自动扩展和优化提示词以提升生成质量。
+
+**用法**:
+```python
+result = mcp__playwright-image-gen__generate_image(
+    script_name="测试剧本",
+    prompt="竹林小路，夜晚",
+    filename="scene_forest.png",
+    api_action="SubmitTextToImageJob",
+    revise_prompt=True,  # 开启AI优化（默认True）
+    logo_add=0  # 不添加水印（默认0）
+)
+```
+
+**效果**:
+- 开启后，模型会自动扩展和优化你的提示词以提升生成质量
+- 例如："竹林小路，夜晚" 可能被优化为 "竹林间幽静的小路，月光透过竹叶洒落，夜色朦胧，电影感构图，高清细节"
+
+**适用场景**: 使用混元3.0生成背景图或角色立绘时，建议开启以提升画质。
+
+---
+
 **最后更新**: 2026-03-03
 **文档版本**: v1.0
