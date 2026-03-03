@@ -334,13 +334,16 @@ class PygameVNApp:
         self.segments = {}
         if isinstance(raw, list):
             self.total_linear = len(raw)
+            # 优先使用 segment 自带 id 字段作为键，兼容纯数字索引旧脚本
+            keys = [str(seg.get("id", i)) for i, seg in enumerate(raw)]
             for i, seg in enumerate(raw):
                 seg = dict(seg)
                 seg.pop("choices", None)
                 if "next" not in seg and i + 1 < len(raw):
-                    seg["next"] = str(i + 1)
-                self.segments[str(i)] = seg
-            self.current_id = data.get("start", "0")
+                    seg["next"] = keys[i + 1]
+                self.segments[keys[i]] = seg
+            first_key = keys[0] if keys else "0"
+            self.current_id = data.get("start", first_key)
         else:
             self.total_linear = len(raw)
             for k, v in raw.items():
@@ -403,6 +406,12 @@ class PygameVNApp:
             self.step_texts = []
             self.step_index = 0
             self._show_segment()
+        else:
+            # 最后一段播完，显示剧终画面
+            self.animating = False
+            self.anim_target_text = "— 终 —\n故事结束，按 ESC 返回菜单"
+            self.anim_char_index = len(self.anim_target_text)
+            self.current_id = ""  # 清空使后续按键无效
 
     def _show_segment(self):
         seg = self.segments.get(self.current_id)
@@ -670,7 +679,14 @@ class PygameVNApp:
     def _build_step_texts(self, seg: dict) -> list[str]:
         text = str(seg.get("text", "") or "")
         break_lines = seg.get("display_break_lines")
-        if isinstance(break_lines, list):
+        if isinstance(break_lines, list) and break_lines:
+            # 新格式：字符串数组，每项为一步显示内容，累积展示
+            if all(isinstance(s, str) for s in break_lines):
+                return [
+                    self._normalize_text("\n".join(break_lines[:i]))
+                    for i in range(1, len(break_lines) + 1)
+                ]
+            # 兼容旧格式：整数断点索引（text 含 \n）
             raw_lines = text.split("\n")
             if raw_lines:
                 valid_points: list[int] = []
