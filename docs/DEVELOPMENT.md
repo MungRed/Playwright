@@ -75,8 +75,8 @@ python scripts/bootstrap_env.py --check-only
 ### 5.2 常用字段
 
 - `shared`: 剧本流水线共享数据容器（推荐）
-- `text`: 段落正文
-- `display_break_lines`: 同段分步断点（按原文行号断开）
+- `text`: 段落正文。若同段有 `display_break_lines`，本字段留空 `""`（引擎不读）。
+- `display_break_lines`: 同段分步文本数组（字符串格式）。每项为**该步新增的一行文本**（非累积存储），引擎按顺序累积拼接后渲染。`text` 留空可避免内容重复。
 - `effect`: `typewriter | shake`
 - `speed`: 动画速度（ms/帧），其中 `typewriter` 固定为 `55`
 - `next`: 下一段 ID
@@ -141,7 +141,9 @@ python scripts/bootstrap_env.py --check-only
 
 ### 6.4 段内分步推进约定
 
-- 同一段优先通过 `display_break_lines` 配置分步显示：空格/左键优先追加显示下一步文本。
+- 同一段通过 `display_break_lines`（字符串数组）配置分步显示：每项为该步**新增的一行文本**，引擎按步累积拼接后渲染。
+- `text` 字段在有 `display_break_lines` 时留空 `""`，避免内容重复造成 JSON 过大。
+- 编排剧本时不在 `text` 中写 `\n`；分行控制完全由 `display_break_lines` 数组顺序决定。
 - 单步动画播放期间再次空格/左键为“跳过当前步动画并直接显示完整步”。
 - 当前段最后一步显示完成后，下一次空格/左键才进入下一段。
 - 同段后续步骤采用“追加显示”策略，不重复从首字符重播整步动画。
@@ -160,6 +162,8 @@ python scripts/bootstrap_env.py --check-only
 - 生图按腾讯云官方 `TextToImageLite / SubmitTextToImageJob` 调用
 - 生文默认模型由 `HUNYUAN_TEXT_MODEL` 控制，生图接口域名由 `HUNYUAN_ENDPOINT` 控制
 - 生文 MCP 工具 `generate_text` 新增会话与文件上下文参数：`session_id`、`use_session_history`、`context_files`、`enable_deep_read`，并支持 `carry_forward_file_ids` 自动继承历史 `FileIDs`，用于长篇续写稳定保留上下文。
+  - **`enable_deep_read` 注意**：深度阅读功能默认未开通，必须传 `enable_deep_read=false`；传 `true` 会触发 `InvalidParameter` 报错。
+  - **`context_files` 文件格式限制**：混元文件上传接口仅接受 `.txt` 格式，不支持 `.md`；上传前须将草稿另存为 `.txt`。
 - 同一 `session_id` 新增并发保护：服务端按会话文件锁串行化读写，避免并发请求造成历史未落盘；锁等待超时会返回明确错误并提示改串行调用。
 - 生文上下文文件采用混元 `FilesUploads` 上传后，通过消息 `FileIDs` 挂载到 user 消息；本地文件可复用 COS 自动上传链路（需 `COS_AUTO_UPLOAD_ENABLED=true`）。
 - 会话历史默认持久化到 `scripts/shared/text_sessions/<session_id>.json`，并按 40 条消息上限自动裁剪旧消息（优先保留 system）。
@@ -197,25 +201,23 @@ python scripts/bootstrap_env.py --check-only
 ## 9. 最近变更记录
 
 ### 9.1 最近 12 条
-
-- 2026-03-03：重建 `scripts/铁道银河之夜` 文本草稿与 `script.json`：改为无编号连续段落（53段）并保持 `display_break_lines` 分步显示，修复“编号式碎片文本”导致的割裂阅读体验。
-- 2026-03-03：调整长篇分批续写提示词策略：默认“自然承接前文”且不强制每批段尾悬念，仅在用户明确要求章节钩子时才添加悬念约束；同步到 `create-script` 与 `orchestrate-script-production` skill。
+- 2026-03-03：根据银河铁道之夜制作踩坑经验，批量更新四个 skill：① `create-script`：`display_break_lines` 改为字符串数组、`text` 留空、JSON 写入必须用 `json.dumps`、自检不再校验整数断点；② `configure-script-presentation`：同步 `display_break_lines` 新格式约束，禁止 `text` 含 `\n`；③ `attach-script-assets`：`segment_id` 必须用 `segments[i].id` 字段值而非数字索引，路径写回前须磁盘核验；④ `generate-character-images`：写回 `character_refs` 时必须使用生图返回的实际文件名，不得按角色名推断（防止汉字拼写差异导致路径悬空）。
+- 2026-03-03：`display_break_lines` 改为字符串数组格式（每项=该步新增文本行，引擎累积拼接渲染）；`text` 字段在有 `display_break_lines` 时统一留空，消除内容重复，约减 40% 脚本文件体积。`_build_step_texts` 兼容旧整数断点格式。
+- 2026-03-03：修复最后一段播完后不显示剧终、以及长段不能分步推进的问题：① `_advance()` 在 `next_id is None` 时直接展示"— 终 —"并清空 `current_id`；② `_build_step_texts()` 在无 `display_break_lines` 时按中文句尾标点（`。！？…`）自动拆分为累积步进，每次按空格显示下一句。
+- 2026-03-03：修复引擎 segment 导航 Bug：`_start_script` 加载列表型 segments 时改为优先使用 segment 自带 `id` 字段作为字典键（回退数字索引兼容旧脚本），自动补充的 `next` 也指向下一段真实 id，解决具名 id（如 `"s2"`）在 `segments` 中查找为 `None` 导致第一段播完即跳剧终的问题。
+- 2026-03-03：明确混元文件接口两项限制：① `enable_deep_read=true` 默认未开通，必须传 `false`；② `context_files` 仅支持 `.txt` 格式不支持 `.md`；同步到 `create-script` skill 与本文档。
+- 2026-03-03：调整长篇分批续写提示词策略：默认"自然承接前文"且不强制每批段尾悬念，仅在用户明确要求章节钩子时才添加悬念约束；同步到 `create-script` 与 `orchestrate-script-production` skill。
 - 2026-03-03：`generate_text` 新增同会话并发保护（文件锁 + 超时提示），减少并发调用下的历史竞争与上下文丢失问题。
-- 2026-03-03：生文链路升级为“会话+文件上下文”模式：`generate_text` 支持 `session_id` 复用历史消息，支持 `context_files -> FilesUploads -> FileIDs` 挂载，缓解长篇续写上下文截断问题。
+- 2026-03-03：生文链路升级为"会话+文件上下文"模式：`generate_text` 支持 `session_id` 复用历史消息，支持 `context_files -> FilesUploads -> FileIDs` 挂载，缓解长篇续写上下文截断问题。
 - 2026-03-03：新增默认参考文章约定：阶段1/2可使用《铁道银河之夜》作风格参考（`theme_tone_only`），并明确禁止复刻原文/设定；同步到 skills 与 README。
-- 2026-03-03：补充编排“结果汇总”口径：需显式输出 `review_after_stage2` 与最终 `review_gate`，并同步 README。
+- 2026-03-03：补充编排"结果汇总"口径：需显式输出 `review_after_stage2` 与最终 `review_gate`，并同步 README。
 - 2026-03-03：同步 README：补充阶段2 `review_gate` 四种状态示例（`pending_user_review|approved|regenerate_stage2|auto_continue`）及分支语义。
 - 2026-03-03：补充编排模板：阶段2输出 `review_gate` 扩展为 `pending_user_review|auto_continue|approved|regenerate_stage2`，并增加审稿分支状态示例。
-- 2026-03-03：补充 `shared.pipeline_state` 示例字段：新增 `review_after_stage2` 与 `review_gate`，用于标记阶段2审稿分支状态与流转结果。
-- 2026-03-03：新增“阶段2审稿分支”流程：阶段1提前询问 `review_after_stage2`；为 `true` 时阶段2后暂停待用户检查并可重生成，为 `false` 时自动继续阶段3/4。
-- 2026-03-03：新增正文风格硬约束：阶段2 `novel_draft` 必须采用人物描写、环境描写、心理描写与对话混合的视觉小说叙事，不合规纯对白草稿需重试生文。
-- 2026-03-03：强化阶段2一致性约束：生成 `novel_draft` 时必须将 `planning_draft` 作为生文 API 输入上下文（建议全文注入），以避免前后设定不一致。
-- 2026-03-02：调整剧本生成流程：阶段1/2改为“生文 API 先产出传统文本草稿并落盘（`scripts/<script_name>/drafts/`），再由 agent 转换为 `script.json`”，不再要求生文直接产出完整 JSON。
-- 2026-03-02：主菜单剧本列表改为可滚动，移除“最多显示约 5 个剧本”的可视限制；支持鼠标滚轮与 `↑/↓` 键滚动，并新增滚动条与底部提示文案。
-- 2026-03-02：修复运行时“找不到剧本”问题：`engine/pygame_app.py` 读取 `script.json` 改为 `utf-8-sig`，兼容带 BOM 的 UTF-8 文件，避免菜单扫描时被静默跳过。
 
 ### 9.2 长期里程碑
 
+- 2026-03-03：硬约束三项写入 skills：① 阶段2 `novel_draft` 必须采用人物/环境/心理/对话混合叙事，禁止纯对白体；② 生成 `novel_draft` 时必须将 `planning_draft` 全文注入生文 API 上下文；③ 新增"阶段2审稿分支"——阶段1提前询问 `review_after_stage2`，审稿通过后才继续阶段3/4。
+- 2026-03-03：调整剧本生成流程：阶段1/2改为"生文 API 先产出传统文本草稿并落盘（`scripts/<script_name>/drafts/`），再由 agent 转换为 `script.json`"，不再要求生文直接产出完整 JSON。
 - 2026-03-02：运行时主流程迁移至 `pygame`（`main.py -> engine/pygame_app.py`），支持线性阅读、分步追加、背景渐变/震动、回退与返回菜单。
 - 2026-02-28：统一并固化剧本共享数据协议：以 `shared` 作为单一数据源（`planning/style_contract/character_refs/asset_manifest/pipeline_state`），兼容历史 `planning` 迁移。
 - 2026-02-28：升级生图稳定性与风格契约：启用双锚点 `style_contract`、分辨率归一化、限流重试与可选 COS 本地参考图上传复用。

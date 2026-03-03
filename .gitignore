@@ -6,4 +6,7 @@ __pycache__/
 # Local secrets / machine-specific configs
 .vscode/mcp.json
 .env
+
+# 混元API文本会话缓存（本地临时文件，不纳入版本控制）
+scripts/shared/text_sessions/
 .env.*
