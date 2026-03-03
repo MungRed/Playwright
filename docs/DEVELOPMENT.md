@@ -64,6 +64,8 @@ python scripts/bootstrap_env.py --check-only
 - 生图服务会在剧本资源目录维护 `scripts/<script_name>/assets/_style_contract.json` 作为风格契约缓存（style/negative 锚点）。
 - 文本生产新增草稿落盘约定：阶段1/2 生文原文先保存到 `scripts/<script_name>/drafts/`，再由 agent 转换为 `script.json`。
 - 推荐草稿文件：`planning_draft.md`（规划）、`novel_draft.md`（正文）。
+- 一致性约束：阶段2生成 `novel_draft.md` 时，生文请求必须注入 `planning_draft.md` 内容（优先全文）作为上下文，避免前后文设定漂移。
+- 文风约束：阶段2 `novel_draft` 必须包含人物描写、环境描写与心理描写，并与对话混合；禁止全篇纯对白。
 
 ### 5.1 线性格式
 
@@ -88,6 +90,7 @@ python scripts/bootstrap_env.py --check-only
 - 推荐由各阶段按最小改动读写：
 	- `shared.planning`：阶段1需求摘要、世界观、人设、大纲、剧本形态（`visual_novel`）
 		- 支持大纲来源字段：`planning_source`（`ai_auto` / `user_keywords`）
+		- 可选参考文章字段：`reference_article`（默认《铁道银河之夜》），建议写入 `usage=theme_tone_only`
 		- 当 `planning_source=user_keywords` 时，建议写入 `user_keywords`（`worldview`/`characters`/`outline`）
 	- `shared.style_contract`：双锚点画风约束
 		- `background_style_anchor` / `background_negative_anchor`
@@ -95,9 +98,10 @@ python scripts/bootstrap_env.py --check-only
 	- `shared.character_refs`：人物设定图路径清单
 	- `shared.asset_manifest`：段落资产映射（`segment_id`、`background_image`、`character_image`）
 	- `shared.pipeline_state`：阶段进度与统计信息
+		- 建议包含审稿分支字段：`review_after_stage2`（是否阶段2后审稿）与 `review_gate`（`pending_user_review|auto_continue|approved|regenerate_stage2`）
 - 兼容历史脚本：若仅有顶层 `planning`，可读取后迁移到 `shared.planning`。
 - 默认约定：用户未指定大纲来源时，`planning_source=ai_auto`。
-- 编排执行约定：阶段1（规划）完成后，默认自动连续执行阶段2-4；仅在阶段失败或关键参数缺失时再询问用户意见。
+- 编排执行约定：阶段1（规划）需先确认 `review_after_stage2` 偏好；阶段2完成后，若为 `true` 则先暂停等待用户审稿并按反馈重生成或继续，若为 `false` 则自动连续执行阶段3-4。
 - 一致性约定：`title` 应与剧本文件名（不含 `.json`）保持一致；不一致时应自动修正。
 
 ### 5.4 背景配置（background）
@@ -155,8 +159,12 @@ python scripts/bootstrap_env.py --check-only
 - 生文按腾讯云官方 `ChatCompletions` 调用（Endpoint: `hunyuan.tencentcloudapi.com`，版本 `2023-09-01`）
 - 生图按腾讯云官方 `TextToImageLite / SubmitTextToImageJob` 调用
 - 生文默认模型由 `HUNYUAN_TEXT_MODEL` 控制，生图接口域名由 `HUNYUAN_ENDPOINT` 控制
+- 生文 MCP 工具 `generate_text` 新增会话与文件上下文参数：`session_id`、`use_session_history`、`context_files`、`enable_deep_read`，并支持 `carry_forward_file_ids` 自动继承历史 `FileIDs`，用于长篇续写稳定保留上下文。
+- 同一 `session_id` 新增并发保护：服务端按会话文件锁串行化读写，避免并发请求造成历史未落盘；锁等待超时会返回明确错误并提示改串行调用。
+- 生文上下文文件采用混元 `FilesUploads` 上传后，通过消息 `FileIDs` 挂载到 user 消息；本地文件可复用 COS 自动上传链路（需 `COS_AUTO_UPLOAD_ENABLED=true`）。
+- 会话历史默认持久化到 `scripts/shared/text_sessions/<session_id>.json`，并按 40 条消息上限自动裁剪旧消息（优先保留 system）。
 - 剧本文本生产约束：阶段1/2（规划与正文）必须通过生文 API 生成，不允许跳过 API 直接离线产出完整文本。
-- 文本生成流程约束：不要求生文 API 直接返回完整 JSON；应先生成传统文本草稿，再由本地 agent 转换为 `segments` 结构，减少 token 浪费并提升创作自由度。
+ 2026-03-03：`generate_text` 新增 `carry_forward_file_ids`（默认 true），会话续写时可自动继承最近 user 消息中的 `FileIDs`，减少重复传 `context_files`。
 - 生图服务默认支持质量稳定化参数：`scene_type`、`style_anchor`、`negative_anchor`、`enforce_style`、`strict_no_people`、`retry_max`。
 - 生图服务默认支持退避重试：`HUNYUAN_RETRY_MAX`、`HUNYUAN_RETRY_BASE_SEC`。
 - `TextToImageLite` 会做分辨率归一化以降低失败率：横图→`1280x720`、竖图→`720x1280`、方图→`1024x1024`。
@@ -190,18 +198,21 @@ python scripts/bootstrap_env.py --check-only
 
 ### 9.1 最近 12 条
 
+- 2026-03-03：重建 `scripts/铁道银河之夜` 文本草稿与 `script.json`：改为无编号连续段落（53段）并保持 `display_break_lines` 分步显示，修复“编号式碎片文本”导致的割裂阅读体验。
+- 2026-03-03：调整长篇分批续写提示词策略：默认“自然承接前文”且不强制每批段尾悬念，仅在用户明确要求章节钩子时才添加悬念约束；同步到 `create-script` 与 `orchestrate-script-production` skill。
+- 2026-03-03：`generate_text` 新增同会话并发保护（文件锁 + 超时提示），减少并发调用下的历史竞争与上下文丢失问题。
+- 2026-03-03：生文链路升级为“会话+文件上下文”模式：`generate_text` 支持 `session_id` 复用历史消息，支持 `context_files -> FilesUploads -> FileIDs` 挂载，缓解长篇续写上下文截断问题。
+- 2026-03-03：新增默认参考文章约定：阶段1/2可使用《铁道银河之夜》作风格参考（`theme_tone_only`），并明确禁止复刻原文/设定；同步到 skills 与 README。
+- 2026-03-03：补充编排“结果汇总”口径：需显式输出 `review_after_stage2` 与最终 `review_gate`，并同步 README。
+- 2026-03-03：同步 README：补充阶段2 `review_gate` 四种状态示例（`pending_user_review|approved|regenerate_stage2|auto_continue`）及分支语义。
+- 2026-03-03：补充编排模板：阶段2输出 `review_gate` 扩展为 `pending_user_review|auto_continue|approved|regenerate_stage2`，并增加审稿分支状态示例。
+- 2026-03-03：补充 `shared.pipeline_state` 示例字段：新增 `review_after_stage2` 与 `review_gate`，用于标记阶段2审稿分支状态与流转结果。
+- 2026-03-03：新增“阶段2审稿分支”流程：阶段1提前询问 `review_after_stage2`；为 `true` 时阶段2后暂停待用户检查并可重生成，为 `false` 时自动继续阶段3/4。
+- 2026-03-03：新增正文风格硬约束：阶段2 `novel_draft` 必须采用人物描写、环境描写、心理描写与对话混合的视觉小说叙事，不合规纯对白草稿需重试生文。
+- 2026-03-03：强化阶段2一致性约束：生成 `novel_draft` 时必须将 `planning_draft` 作为生文 API 输入上下文（建议全文注入），以避免前后设定不一致。
 - 2026-03-02：调整剧本生成流程：阶段1/2改为“生文 API 先产出传统文本草稿并落盘（`scripts/<script_name>/drafts/`），再由 agent 转换为 `script.json`”，不再要求生文直接产出完整 JSON。
 - 2026-03-02：主菜单剧本列表改为可滚动，移除“最多显示约 5 个剧本”的可视限制；支持鼠标滚轮与 `↑/↓` 键滚动，并新增滚动条与底部提示文案。
 - 2026-03-02：修复运行时“找不到剧本”问题：`engine/pygame_app.py` 读取 `script.json` 改为 `utf-8-sig`，兼容带 BOM 的 UTF-8 文件，避免菜单扫描时被静默跳过。
-- 2026-03-02：项目结构迁移为“每个剧本一个目录”：`scripts/<script_name>/script.json + assets/`；引擎菜单改为扫描子目录 `script.json`，并优先按剧本目录解析相对资源路径。
-- 2026-03-02：更新 `create-script` 与 `orchestrate-script-production`：剧本生成阶段（规划/正文）强制调用生文 API（`mcp_playwright-im_generate_text`），若调用失败需中断并询问“重试/降级/终止”。
-- 2026-03-02：将混元生文默认模型从 `hunyuan-turbos-latest` 切换为 `hunyuan-pro`，同步更新 `.mcp/image_gen_server.py`、`.vscode/mcp.example.jsonc`、`.vscode/mcp.json` 与 README 说明。
-- 2026-03-02：`.mcp/image_gen_server.py` 新增混元生文 `generate_text` 工具，接入 `ChatCompletions`（非流式）并复用统一重试策略；同时在 `.vscode/mcp.example.jsonc` 增加 `HUNYUAN_TEXT_ENDPOINT` / `HUNYUAN_TEXT_MODEL`。
-- 2026-03-02：补充图生图硬规则：`reference_images` 若为本地路径，必须先上传/复用 COS 获取 `https` URL，再调用 `SubmitTextToImageJob`；禁止直接传本地路径。
-- 2026-03-02：修复编排流程问题：阶段1后改为自动执行阶段2-4（仅失败时询问）；并新增 `title` 与文件名一致性校验；剧情立绘改为强制图生图 + 竖向分辨率输出。
-- 2026-03-02：更新剧本创作流程：阶段1支持“AI 自动生成 / 用户关键词”两种大纲来源；`shared.planning` 新增 `planning_source`，关键词模式建议写入 `user_keywords`。
-- 2026-03-02：将“最近 12 条超限处理规则”同步到 README 的文档维护说明，避免团队仅阅读 README 时遗漏。
-- 2026-03-02：新增维护规则：当“最近 12 条”超限时，最旧条目按“先评估长期价值，里程碑归档，否则移除”自动处理。
 
 ### 9.2 长期里程碑
 
