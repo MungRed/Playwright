@@ -154,9 +154,35 @@ python scripts/bootstrap_env.py --check-only
 
 ## 7. 配置与安全
 
-- 仓库不提交真实 API 配置：`.vscode/mcp.json` 已忽略
-- 提交模板：`.vscode/mcp.example.jsonc`
-- 新成员拉取后自行填写本地 `API_KEY`
+### 7.1 MCP 配置（双轨制）
+
+本项目支持两种 AI 编辑环境，各有独立的 MCP 配置文件：
+
+| 环境 | 配置文件 | 模板文件 | 用途 |
+|------|---------|---------|------|
+| **VSCode 扩展** | `.vscode/mcp.json` | `.vscode/mcp.example.jsonc` | VSCode 内置的 Copilot/插件调用 |
+| **Claude Code CLI** | `.mcp.json` | `.mcp.example.json` | Claude Code 对话中直接调用 MCP 工具 |
+
+**配置约定**：
+- 两个配置文件均已在 `.gitignore` 中忽略，不会提交到版本库
+- 新成员拉取后需从模板文件复制并填写真实密钥
+- 可运行 `python scripts/bootstrap_env.py` 自动从模板生成本地配置
+- **关键区别**：
+  - VSCode 配置使用 `${workspaceFolder}` 变量，格式为 `servers` 对象
+  - Claude Code 配置使用相对路径，格式为 `mcpServers` 对象
+
+**快速初始化**：
+```bash
+# 自动生成两个配置文件
+python scripts/bootstrap_env.py
+
+# 然后分别编辑填写密钥
+# .vscode/mcp.json - VSCode 扩展用
+# .mcp.json - Claude Code CLI 用
+```
+
+### 7.2 API 提供商与接口约定
+
 - AI 提供商：仅 `hunyuan`（腾讯混元）
 - 生文按腾讯云官方 `ChatCompletions` 调用（Endpoint: `hunyuan.tencentcloudapi.com`，版本 `2023-09-01`）
 - 生图按腾讯云官方 `TextToImageLite / SubmitTextToImageJob` 调用

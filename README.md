@@ -81,16 +81,44 @@ python scripts/bootstrap_env.py
 python scripts/bootstrap_env.py --check-only
 ```
 
-### API 配置安全说明（Public 仓库）
+### MCP 配置说明（双轨制）
 
-- 仓库仅提供模板文件：`.vscode/mcp.example.jsonc`
-- 本地实际配置文件：`.vscode/mcp.json`（已在 `.gitignore` 中忽略，不会提交）
-- 首次使用可直接运行 `python scripts/bootstrap_env.py`，会自动从模板生成本地配置
-- 然后在 `.vscode/mcp.json` 中填写你自己的 `API_KEY`
+本项目支持两种 AI 编辑环境，各有独立的 MCP 配置文件：
+
+| 环境 | 配置文件 | 模板文件 | 用途 |
+|------|---------|---------|------|
+| **VSCode 扩展** | `.vscode/mcp.json` | `.vscode/mcp.example.jsonc` | VSCode 内置的 Copilot/插件 |
+| **Claude Code CLI** | `.mcp.json` | `.mcp.example.json` | Claude Code 对话窗口 |
+
+**配置步骤**：
+
+1. **自动初始化（推荐）**：
+   ```bash
+   python scripts/bootstrap_env.py
+   ```
+   此脚本会自动从模板生成两个配置文件。
+
+2. **手动初始化**：
+   ```bash
+   # VSCode 扩展配置
+   cp .vscode/mcp.example.jsonc .vscode/mcp.json
+
+   # Claude Code CLI 配置
+   cp .mcp.example.json .mcp.json
+   ```
+
+3. **填写密钥**：
+   - 编辑 `.vscode/mcp.json`（VSCode 扩展用）
+   - 编辑 `.mcp.json`（Claude Code CLI 用）
+   - 两个文件都需要填写相同的腾讯云密钥
+
+**安全说明**：
+- 两个配置文件均已在 `.gitignore` 中忽略，不会提交到版本库
+- 模板文件不包含真实密钥，可以安全提交
 
 ### 腾讯混元接入（生文 + 生图）
 
-本项目 AI 能力统一使用腾讯混元（生文 + 生图）。请在 `.vscode/mcp.json` 配置：
+本项目 AI 能力统一使用腾讯混元（生文 + 生图）。配置示例：
 
 ```jsonc
 "API_PROVIDER": "hunyuan",
