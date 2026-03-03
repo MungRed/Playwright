@@ -100,7 +100,7 @@ description: 仅负责统筹并串联剧本相关子 skill 的端到端流程。
 
 2. 阶段化执行（默认自动连续执行，不逐步询问）：
    - 阶段1（需求澄清与方案）：通过对话补齐缺失信息，先确认大纲来源模式（AI 自动或用户关键词），调用 `create-script` 并由其调用 `mcp_playwright-im_generate_text` 生成“规划草稿（传统文本）”，先落盘 `scripts/<script_name>/drafts/planning_draft.md`，再转换并写入 `shared.planning`（明确传入“原创创作，不参考其他剧本正文”约束）
-   - 阶段2（文本剧本）：读取并注入 `scripts/<script_name>/drafts/planning_draft.md` 全文作为生文输入上下文，调用 `create-script` 并由其调用 `mcp_playwright-im_generate_text` 生成“正文草稿（传统小说文本）”；正文必须包含人物/环境/心理描写并混合对话，禁止纯对白。随后先落盘 `scripts/<script_name>/drafts/novel_draft.md`，再由 agent 转换为基础剧本文本；再调用 `configure-script-presentation` 添加 `effect`/`speed`/`display_break_lines`，并更新 `shared.pipeline_state`（其中 `typewriter` 速度固定为 `55`；文本阶段保持原创约束）
+   - 阶段2（文本剧本）：读取并注入 `scripts/<script_name>/drafts/planning_draft.md` 全文作为生文输入上下文，调用 `create-script` 并由其调用 `mcp_playwright-im_generate_text` 生成"正文草稿（传统小说文本）"；正文必须包含人物/环境/心理描写并混合对话，禁止纯对白。随后先落盘 `scripts/<script_name>/drafts/novel_draft.md`，再由 agent 转换为基础剧本文本；再调用 `configure-script-presentation` 添加 `effect`/`speed`/`display_break_lines`，并更新 `shared.pipeline_state`（其中 `typewriter` 速度固定为 `55`；`display_break_lines` 必须为**字符串数组**格式，对应段落 `text` 字段留空 `""`，不含 `\n`；文本阶段保持原创约束）
       - 阶段2超长稿策略：默认采用“分批续写 + 同一 `session_id`”模式；若上下文接近上限，启用 `context_files`（`planning_draft` 与已生成片段）并附加 `FileIDs` 继续续写，后续批次保持 `carry_forward_file_ids=true`。
       - 分批续写提示词默认要求“自然承接前文”，不强制每批结尾制造悬念；只有用户明确指定章节钩子时，才在对应批次增加悬念约束。
    - 阶段2结束后必须执行一致性校验：`title` 应与剧本文件名（不含 `.json`）一致；不一致则自动修正为文件名
