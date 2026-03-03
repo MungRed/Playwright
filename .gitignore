@@ -13,5 +13,8 @@ __pycache__/
 scripts/shared/text_sessions/
 .env.*
 
-# 剧本实例（可选择性提交）
-scripts/电梯迷失/
+# 剧本实例目录（统一忽略，避免大体积资源入库）
+scripts/*/
+
+# 保留 scripts 根目录下工具脚本
+!scripts/*.py
