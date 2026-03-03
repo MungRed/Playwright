@@ -8,6 +8,7 @@
 
 ## 目录
 
+0. [剧本生产最小基线（必读）](#0-剧本生产最小基线必读)
 1. [文件路径与命名](#1-文件路径与命名)
 2. [API 调用与参数](#2-api-调用与参数)
 3. [JSON 与数据结构](#3-json-与数据结构)
@@ -20,11 +21,19 @@
 
 ---
 
-## 1. 文件路径与命名
+## 0. 剧本生产最小基线（必读）
 
-### 1.1 图片资源路径必须使用完整相对路径
+为避免 agent 因历史补丁语句产生误解，剧本生产默认按以下基线执行：
 
-**问题**:
+1. 阶段1/2 文本必须调用生文 API（禁止离线直写全文）。
+2. `shared` 是唯一共享数据源；写回必须保留非目标字段。
+3. `display_break_lines` 为可选节奏手法；使用时必须字符串数组且 `text=""`。
+4. `effect` 为可选演出手法；若 `effect=typewriter`，`speed=55`。
+5. 阶段2结束必须通过双门禁：
+   - 结构门禁：`python scripts/normalize_script_break_lines.py scripts/<name>/script.json --check`
+   - 质量门禁：`python scripts/quality_audit.py scripts/<name>/script.json --check`
+6. 禁止读取其他剧本正文作为创作素材。
+7. 质量修复顺序固定为：本地体检 → 定向改写 → 模型复评（最多2轮）。
 调用生图 API 时使用短路径 `assets/char_ref_小益_v1.png` 导致 `reference_images` 无法访问。
 
 **原因**:
@@ -325,6 +334,10 @@ with open("script.json", "w", encoding="utf-8") as f:
 
 **适用场景**: `create-script` 和 `configure-script-presentation` 生成段落配置时。
 
+**补充（2026-03-04）**:
+- 旧脚本常出现 `"display_break_lines": [1]`（整数断点旧格式），会导致节奏控制退化。
+- 回写前必须做结构校验：若 `text` 非空则拆成字符串行数组写入 `display_break_lines`，并将 `text` 置空。
+
 ---
 
 ### 3.3 text 字段禁止包含 \n，分行由 display_break_lines 控制
@@ -346,6 +359,102 @@ segment["display_break_lines"] = ["第一行", "第二行"]
 ```
 
 **适用场景**: `create-script` 生成段落时。
+
+---
+
+### 3.4 编排阶段2必须运行 normalize 收尾门禁
+
+**问题**:
+生成剧本时遗漏 `display_break_lines` 新格式，落成旧结构（如 `[1]`）并混用 `text`。
+
+**原因**:
+流程只有约束描述，没有“写回后自动校验”执行步骤。
+
+**正确做法**:
+```bash
+python scripts/normalize_script_break_lines.py scripts/<script_name>/script.json
+python scripts/normalize_script_break_lines.py scripts/<script_name>/script.json --check
+```
+
+**适用场景**: `orchestrate-script-production` 阶段2结束后，进入阶段3/4之前。
+
+---
+
+### 3.5 display_break_lines 是节奏手法，不是每段强制字段
+
+**问题**:
+将 `display_break_lines` 误当作“每段必填”，导致短过渡段也被强行拆分，阅读节奏反而变碎。
+
+**原因**:
+把结构正确性约束误解成“所有段都必须多步显示”。
+
+**正确做法**:
+```json
+// 短段：单步显示（可不写 display_break_lines）
+{ "text": "封锁启动。", "effect": "typewriter", "speed": 55 }
+
+// 重点段：同段多步点击推进
+{ "text": "", "display_break_lines": ["第一句", "第二句"] }
+```
+
+**适用场景**: 视觉小说文本编排；需要在“可读性”和“节奏感”之间平衡时。
+
+---
+
+### 3.6 旧断点 `[1]` 与 `text` 并存时，转换必须优先保留 `text`
+
+**问题**:
+批量规范化把旧格式 `[1]` 直接转成 `['1']`，并清空 `text`，导致段落正文丢失，看起来像“没有文字动画”。
+
+**原因**:
+转换逻辑先使用了旧断点数组，而不是使用 `text` 里的真实句子。
+
+**正确做法**:
+```python
+if has_display_break_lines and has_text:
+    lines = [line.strip() for line in text.split("\\n") if line.strip()]
+    segment["text"] = ""
+    segment["display_break_lines"] = lines
+```
+
+**适用场景**: 历史剧本从旧断点格式迁移到字符串数组格式时。
+
+---
+
+### 3.7 `effect` 是可选演出字段，配置时必须合法
+
+**问题**:
+将 `effect` 写成 `"effect": {}` 等非法结构，导致文字动画表现异常或看起来“没有动画”。
+
+**原因**:
+将演出手法误当作固定结构字段，缺少“仅在配置时校验”的约束。
+
+**正确做法**:
+```python
+effect = segment.get("effect")
+if effect is not None and effect not in ("typewriter", "shake"):
+    raise ValueError("effect 非法：仅允许 typewriter/shake，或不配置")
+```
+
+**适用场景**: 剧本演出编排阶段；需要配置动画时的字段校验。
+
+---
+
+### 3.8 使用 `typewriter` 时必须固定 `speed=55`
+
+**问题**:
+同为 `typewriter` 的段落速度不一致，导致阅读节奏忽快忽慢。
+
+**原因**:
+将 `typewriter` 也当作可自由调速，未应用统一节奏基线。
+
+**正确做法**:
+```python
+if segment.get("effect") == "typewriter":
+    segment["speed"] = 55
+```
+
+**适用场景**: 所有设置了 `effect=typewriter` 的段落。
 
 ---
 
@@ -480,7 +589,54 @@ result2 = mcp__playwright-image-gen__generate_text(
 
 ---
 
-### 4.4 阶段2 正文草稿必须为"叙事+对话混合"，禁止纯对白
+### 4.4 脚本评估（quality_score_by_ai）必须通过 COS 上传脚本文件
+
+**问题**:
+将整个脚本内容（几千行 JSON）嵌入 prompt，导致消息长度膨胀、token 浪费、响应变慢。
+
+**原因**:
+脚本 JSON 可能包含数十个段落，直接 inline 会占用大量 prompt token；应该把文件上传到 COS，混元 API 通过 `context_files` 访问。
+
+**正确做法**:
+```python
+# ❌ 错误：直接嵌入脚本内容
+result = mcp_playwright-im_generate_text(
+    prompt=f"请评估脚本：{very_long_script_json}...",
+)
+
+# ✅ 正确：上传到 COS，通过 context_files 传递
+# 1. 脚本先转为 .txt 副本（COS 仅支持 .txt）
+script_txt_path = "scripts/<name>/script.txt"
+with open(script_txt_path, "w", encoding="utf-8") as f:
+    f.write(json.dumps(script_data, ensure_ascii=False, indent=2))
+
+# 2. 上传到 COS（调用 upload_to_cos.py）
+cos_url = upload_to_cos(script_txt_path)  # 返回公开 URL
+
+# 3. 评估时只传元数据 + COS URL
+result = mcp_playwright-im_generate_text(
+    prompt="请评估脚本：标题《xxx》，共 N 段。详见上传的脚本文件。",
+    context_files=[cos_url],  # 直接传 COS URL
+    session_id="script_quality_audit"
+)
+```
+
+工具 `quality_score_by_ai.py` 已内置 COS 上传逻辑：
+```bash
+python scripts/quality_score_by_ai.py scripts/<name>/script.json
+# 自动 → upload_to_cos.py → COS URL → context_files → 混元 API
+```
+
+**适用场景**: `quality_gate_ai.py`（AI 质量门）、`review-script`（剧本评分）、任何向混元 API 上传脚本进行评估的场景。
+
+**收益**:
+- Prompt token 节省 50-80%（脚本字数多时）
+- API 响应更快（消息队列压力降低）
+- 遵循 COS 最佳实践，降低网络成本
+
+---
+
+### 4.5 阶段2 正文草稿必须为"叙事+对话混合"，禁止纯对白
 
 **问题**:
 生成正文全篇为"角色名：台词"格式，缺少描写层。
@@ -924,5 +1080,5 @@ powershell -ExecutionPolicy Bypass -File .venv\Scripts\Activate.ps1
 
 ---
 
-**最后更新**: 2026-03-03
+**最后更新**: 2026-03-04
 **文档版本**: v1.0

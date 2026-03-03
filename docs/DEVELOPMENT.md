@@ -16,6 +16,19 @@
 - 提供左侧进度栏（进度与当前段落）
 - 支持段落背景图（渐变/震动）与右侧人物立绘展示
 
+## 2.1 AI 创作最小协议（必读）
+
+为减少上下文歧义，agent 在剧本创作任务中默认遵循以下最小协议：
+
+1. 文本生成只走混元生文 API（阶段1/2）。
+2. `shared` 是唯一共享数据源；写回必须保留其他字段。
+3. `display_break_lines` 是可选节奏手法；使用时必须为字符串数组且 `text=""`。
+4. `effect` 是可选演出手法；若 `effect=typewriter`，`speed=55`。
+5. 阶段2必须执行双门禁后，才可进阶段3/4：
+   - **结构门禁**：`python scripts/normalize_script_break_lines.py scripts/<script_name>/script.json --check`
+   - **AI质量门禁**：`python scripts/quality_gate_ai.py scripts/<script_name>/script.json --check`
+6. 禁止读取其他剧本正文作为创作素材。
+
 ---
 
 ## 3. 目录与职责
@@ -27,6 +40,10 @@
 - `scripts/<script_name>/assets/*`：该剧本的背景图与人物图资源
 - `scripts/<script_name>/review.json`：剧本评分报告（可选，由 `review-script` skill 生成）
 - `scripts/bootstrap_env.py`：本地环境检查与初始化
+- `scripts/normalize_script_break_lines.py`：剧本分步字段规范化工具（修复分步结构并校验 `typewriter` 速度基线）
+- `scripts/quality_score_by_ai.py`：调用混元API对剧本进行AI评分（通过 COS 上传脚本文件，6维度评分 + 改进建议；具体规范详见 PITFALLS.md § 4.4）
+- `scripts/quality_gate_ai.py`：AI质量门禁工具（基于AI评分 >= 70 判定通过）  
+- `scripts/upload_to_cos.py`：文件上传到腾讯COS工具（支持质量评估时上传脚本、生草稿等大文件）
 
 ---
 
@@ -64,7 +81,9 @@ python scripts/bootstrap_env.py --check-only
 - 文本生产新增草稿落盘约定：阶段1/2 生文原文先保存到 `scripts/<script_name>/drafts/`，再由 agent 转换为 `script.json`。
 - 推荐草稿文件：`planning_draft.md`（规划）、`novel_draft.md`（正文）。
 - 一致性约束：阶段2生成 `novel_draft.md` 时，生文请求必须注入 `planning_draft.md` 内容（优先全文）作为上下文，避免前后文设定漂移。
-- 文风约束：阶段2 `novel_draft` 必须包含人物描写、环境描写与心理描写，并与对话混合；禁止全篇纯对白。- 剧本评分报告：`scripts/<script_name>/review.json` 由 `review-script` skill 生成，包含多维度评分、优缺点分析与改进建议；不影响剧本运行。
+- 文风约束：阶段2 `novel_draft` 必须包含人物描写、环境描写与心理描写，并与对话混合；禁止全篇纯对白。
+- 阶段2收尾门禁：文本转换完成后必须执行 `python scripts/normalize_script_break_lines.py scripts/<script_name>/script.json`，并使用 `--check` 校验 `changed_segments=0` 后方可进入阶段3/4。
+- 剧本评分报告：`scripts/<script_name>/review.json` 由 `review-script` skill 生成，包含多维度评分、优缺点分析与改进建议；不影响剧本运行。
 ### 5.1 线性格式
 
 - `segments` 为数组
@@ -75,8 +94,8 @@ python scripts/bootstrap_env.py --check-only
 - `shared`: 剧本流水线共享数据容器（推荐）
 - `text`: 段落正文。若同段有 `display_break_lines`，本字段留空 `""`（引擎不读）。
 - `display_break_lines`: 同段分步文本数组（字符串格式）。每项为**该步新增的一行文本**（非累积存储），引擎按顺序累积拼接后渲染。`text` 留空可避免内容重复。
-- `effect`: `typewriter | shake`
-- `speed`: 动画速度（ms/帧），其中 `typewriter` 固定为 `55`
+- `effect`: 段落演出手法（可选），常用 `typewriter | shake`
+- `speed`: 动画速度（可选）；当 `effect=typewriter` 时固定为 `55`，其他效果按演出目标配置
 - `next`: 下一段 ID
 - `speaker`: 可选说话人元数据（当前 UI 不单独显示姓名）
 - `character_image`: 人物图路径（相对项目根目录或绝对路径）
@@ -140,9 +159,11 @@ python scripts/bootstrap_env.py --check-only
 
 ### 6.4 段内分步推进约定
 
-- 同一段通过 `display_break_lines`（字符串数组）配置分步显示：每项为该步**新增的一行文本**，引擎按步累积拼接后渲染。
-- `text` 字段在有 `display_break_lines` 时留空 `""`，避免内容重复造成 JSON 过大。
+- `display_break_lines` 是“段内节奏控制”手法（可选）：用于同一段分多次点击阅读。
+- 配置 `display_break_lines`（字符串数组）时，每项为该步**新增的一行文本**，引擎按步累积拼接后渲染。
+- `text` 字段仅在有 `display_break_lines` 时留空 `""`，避免内容重复造成 JSON 过大。
 - 编排剧本时不在 `text` 中写 `\n`；分行控制完全由 `display_break_lines` 数组顺序决定。
+- 未使用 `display_break_lines` 的段落可保留单步 `text` 一次显示（用于简短过渡段）。
 - 单步动画播放期间再次空格/左键为“跳过当前步动画并直接显示完整步”。
 - 当前段最后一步显示完成后，下一次空格/左键才进入下一段。
 - 同段后续步骤采用“追加显示”策略，不重复从首字符重播整步动画。
@@ -226,22 +247,20 @@ python scripts/bootstrap_env.py
 ## 9. 最近变更记录
 
 ### 9.1 最近 12 条
-- 2026-03-04：调整 Git 忽略策略：`scripts/*/` 继续统一忽略剧本实例目录，且不再保留 `scripts/shared/**` 的跟踪例外；`scripts/shared` 作为本地运行缓存目录默认不纳入版本控制。
-- 2026-03-03：落地“写作质量闭环”：阶段2新增严格评审与硬门槛（`overall_score/literary_quality/character_development/creativity_theme`），不达标触发定向重写并复评（最多2轮）；在 `shared.pipeline_state` 新增 `quality_round/quality_gate/quality_scores` 建议字段。
-- 2026-03-03：新增 `review-script` skill，用于调用腾讯混元大模型对剧本进行多维度评分与分析，输出改进建议并保存到 `scripts/<script_name>/review.json`；评分维度包括故事完整性、角色塑造、文学质量、视觉小说适配度与创意主题；支持单剧本或批量评测。
-- 2026-03-03：根据银河铁道之夜制作踩坑经验，批量更新四个 skill：① `create-script`：`display_break_lines` 改为字符串数组、`text` 留空、JSON 写入必须用 `json.dumps`、自检不再校验整数断点；② `configure-script-presentation`：同步 `display_break_lines` 新格式约束，禁止 `text` 含 `\n`；③ `attach-script-assets`：`segment_id` 必须用 `segments[i].id` 字段值而非数字索引，路径写回前须磁盘核验；④ `generate-character-images`：写回 `character_refs` 时必须使用生图返回的实际文件名，不得按角色名推断（防止汉字拼写差异导致路径悬空）。
-- 2026-03-03：`display_break_lines` 改为字符串数组格式（每项=该步新增文本行，引擎累积拼接渲染）；`text` 字段在有 `display_break_lines` 时统一留空，消除内容重复，约减 40% 脚本文件体积。`_build_step_texts` 兼容旧整数断点格式。
-- 2026-03-03：修复最后一段播完后不显示剧终、以及长段不能分步推进的问题：① `_advance()` 在 `next_id is None` 时直接展示"— 终 —"并清空 `current_id`；② `_build_step_texts()` 在无 `display_break_lines` 时按中文句尾标点（`。！？…`）自动拆分为累积步进，每次按空格显示下一句。
-- 2026-03-03：修复引擎 segment 导航 Bug：`_start_script` 加载列表型 segments 时改为优先使用 segment 自带 `id` 字段作为字典键（回退数字索引兼容旧脚本），自动补充的 `next` 也指向下一段真实 id，解决具名 id（如 `"s2"`）在 `segments` 中查找为 `None` 导致第一段播完即跳剧终的问题。
-- 2026-03-03：明确混元文件接口两项限制：① `enable_deep_read=true` 默认未开通，必须传 `false`；② `context_files` 仅支持 `.txt` 格式不支持 `.md`；同步到 `create-script` skill 与本文档。
-- 2026-03-03：调整长篇分批续写提示词策略：默认"自然承接前文"且不强制每批段尾悬念，仅在用户明确要求章节钩子时才添加悬念约束；同步到 `create-script` 与 `orchestrate-script-production` skill。
-- 2026-03-03：`generate_text` 新增同会话并发保护（文件锁 + 超时提示），减少并发调用下的历史竞争与上下文丢失问题。
-- 2026-03-03：生文链路升级为"会话+文件上下文"模式：`generate_text` 支持 `session_id` 复用历史消息，支持 `context_files -> FilesUploads -> FileIDs` 挂载，缓解长篇续写上下文截断问题。
-- 2026-03-03：新增默认参考文章约定：阶段1/2可使用《铁道银河之夜》作风格参考（`theme_tone_only`），并明确禁止复刻原文/设定；同步到 skills 与 README。
-- 2026-03-03：补充编排"结果汇总"口径：需显式输出 `review_after_stage2` 与最终 `review_gate`，并同步 README。
-- 2026-03-03：同步 README：补充阶段2 `review_gate` 四种状态示例（`pending_user_review|approved|regenerate_stage2|auto_continue`）及分支语义。
-- 2026-03-03：将 pygame 添加到 `.mcp/requirements.txt` 并更新 `bootstrap_env.py` 导入检查，统一依赖管理；补充 Windows PowerShell 执行策略问题到常见问题排障。
-- 2026-03-03：补充编排模板：阶段2输出 `review_gate` 扩展为 `pending_user_review|auto_continue|approved|regenerate_stage2`，并增加审稿分支状态示例。
+- 2026-03-04：双门禁质量闭环升级（定量→AI质量门）：将质量评估从定量指标改为混元AI评分，6维度评分（故事完整性/人物塑造/文笔质量/情感代入/创意特色/节奏控制），AI评分 >= 70 为通过。
+- 2026-03-04：建立“本地体检→模型复评→定向重写”固定迭代顺序，补充四类常见质量问题的可执行改写模板。
+- 2026-03-04：完成“文档降噪重构”：`create-script` 与 `orchestrate-script-production` 重写为精简单一规范，减少重复与冲突描述。
+- 2026-03-04：新增 `2.1 AI 创作最小协议`，统一阶段门禁、字段约束与原创约束，降低 agent 误判概率。
+- 2026-03-04：补充演出约束：`effect` 可选；当 `effect=typewriter` 时 `speed` 固定为 `55`。
+- 2026-03-04：修复 `normalize_script_break_lines.py` 迁移逻辑：旧断点与 `text` 并存时优先保留 `text`。
+- 2026-03-04：新增 `normalize_script_break_lines.py`，作为阶段2写回后的结构门禁。
+- 2026-03-04：Git 忽略策略调整为忽略 `scripts/*/`（含 `scripts/shared`），降低大文件入库风险。
+- 2026-03-03：落地质量闭环（评审→定向重写→复评，最多2轮）并记录 `quality_*` 状态。
+- 2026-03-03：新增 `review-script` skill，统一评审输出到 `review.json`。
+- 2026-03-03：统一 `display_break_lines` 为字符串数组协议，清理旧断点格式兼容差异。
+- 2026-03-03：生文链路升级为会话+文件上下文模式，稳定长篇续写。
+- 2026-03-03：明确混元文件限制：`enable_deep_read=false`、`context_files` 仅 `.txt`。
+- 2026-03-03：形成阶段2审稿分支标准口径（`review_after_stage2` + `review_gate`）。
 
 ### 9.2 长期里程碑
 
