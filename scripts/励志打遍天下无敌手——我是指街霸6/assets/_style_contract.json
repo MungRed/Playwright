@@ -1,0 +1,8 @@
+{
+  "character_style_anchor": "anime visual novel character illustration, clean lineart, cel shading, stable character design, modern casual streetwear style",
+  "character_negative_anchor": "低质量, 模糊, 水印, 文本, 畸形, 多余肢体",
+  "updated_at": "2026-03-03T21:00:14",
+  "last_scene_type": "character",
+  "background_style_anchor": "anime visual novel background, clean lineart, soft global illumination, cinematic composition, modern urban gaming atmosphere",
+  "background_negative_anchor": "低质量, 模糊, 水印, 文本, 人物, 人影, 正面人脸"
+}
