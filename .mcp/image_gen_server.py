@@ -42,6 +42,10 @@ OUTPUT_DIR = os.getenv(
     str(Path(__file__).parent.parent / "scripts")
 )
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+TEXT_SESSION_DIR = Path(OUTPUT_DIR) / "shared" / "text_sessions"
+TEXT_SESSION_LOCK_WAIT_SEC = float(os.getenv("TEXT_SESSION_LOCK_WAIT_SEC", "8"))
+TEXT_SESSION_LOCK_POLL_SEC = float(os.getenv("TEXT_SESSION_LOCK_POLL_SEC", "0.2"))
+TEXT_SESSION_LOCK_STALE_SEC = float(os.getenv("TEXT_SESSION_LOCK_STALE_SEC", "120"))
 STYLE_CONTRACT_FILE = "_style_contract.json"
 
 DEFAULT_BG_STYLE_ANCHOR = (
@@ -141,6 +145,44 @@ async def list_tools() -> list[types.Tool]:
                         "type": "boolean",
                         "description": "功能增强开关（如搜索）。",
                     },
+                    "enable_deep_read": {
+                        "type": "boolean",
+                        "description": "深度阅读开关（文件对话场景推荐开启）。",
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "description": "可选：会话ID。传入后会自动持久化并复用历史消息，适合长篇续写。",
+                    },
+                    "reset_session": {
+                        "type": "boolean",
+                        "description": "是否清空指定会话历史后再开始本次请求。",
+                        "default": False,
+                    },
+                    "use_session_history": {
+                        "type": "boolean",
+                        "description": "是否在本次请求中注入该会话历史（默认 true）。",
+                        "default": True,
+                    },
+                    "max_session_messages": {
+                        "type": "integer",
+                        "description": "会话保留的最大消息数（默认 40，超出将自动裁剪旧消息）。",
+                        "default": 40,
+                    },
+                    "context_files": {
+                        "type": "array",
+                        "description": "可选：上下文文件列表（URL 或本地路径）。会自动上传到混元文件接口并挂载 FileIDs。",
+                        "items": {"type": "string"},
+                    },
+                    "attach_file_ids_to_last_user": {
+                        "type": "boolean",
+                        "description": "是否将上传得到的 FileIDs 自动附加到最后一条 user 消息。",
+                        "default": True,
+                    },
+                    "carry_forward_file_ids": {
+                        "type": "boolean",
+                        "description": "会话续写时是否自动继承历史中的 FileIDs 并附加到本轮最后一条 user 消息（默认 true）。",
+                        "default": True,
+                    },
                     "retry_max": {
                         "type": "integer",
                         "description": "失败重试次数（覆盖环境变量 HUNYUAN_RETRY_MAX）。",
@@ -236,29 +278,107 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
         temperature = arguments.get("temperature")
         top_p = arguments.get("top_p")
         enable_enhancement = arguments.get("enable_enhancement")
+        enable_deep_read = arguments.get("enable_deep_read")
         retry_max = int(arguments.get("retry_max", HUNYUAN_RETRY_MAX))
+        session_id = str(arguments.get("session_id", "")).strip()
+        reset_session = bool(arguments.get("reset_session", False))
+        use_session_history = bool(arguments.get("use_session_history", True))
+        max_session_messages = int(arguments.get("max_session_messages", 40))
+        attach_file_ids_to_last_user = bool(arguments.get("attach_file_ids_to_last_user", True))
+        carry_forward_file_ids = bool(arguments.get("carry_forward_file_ids", True))
+        context_files_raw = arguments.get("context_files", []) or []
+        if not isinstance(context_files_raw, list):
+            context_files_raw = [str(context_files_raw)]
 
-        messages = _normalize_chat_messages(arguments.get("messages", []), prompt, system_prompt)
+        lock_token = ""
+        session_lock_wait_ms = 0
+        if session_id:
+            lock_token, session_lock_wait_ms = await _acquire_text_session_lock(
+                session_id,
+                wait_timeout_sec=TEXT_SESSION_LOCK_WAIT_SEC,
+                poll_sec=TEXT_SESSION_LOCK_POLL_SEC,
+                stale_sec=TEXT_SESSION_LOCK_STALE_SEC,
+            )
+            if not lock_token:
+                result = {
+                    "success": False,
+                    "error": (
+                        f"session_id={session_id} 当前正在被并发使用，已等待 {TEXT_SESSION_LOCK_WAIT_SEC:.1f}s 仍未获取锁。"
+                        "请改为串行调用，或更换 session_id。"
+                    ),
+                    "session_id": session_id,
+                    "session_lock_wait_ms": session_lock_wait_ms,
+                }
+                return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
 
         try:
+            messages = _normalize_chat_messages(arguments.get("messages", []), prompt, system_prompt)
+
+            loaded_session_messages = 0
+            if session_id and use_session_history:
+                if reset_session:
+                    _clear_text_session(session_id)
+                prior_messages = _load_text_session(session_id)
+                loaded_session_messages = len(prior_messages)
+                messages = _merge_messages(prior_messages, messages, max_session_messages=max_session_messages)
+
+                if carry_forward_file_ids and prior_messages:
+                    carried_file_ids = _collect_recent_file_ids(prior_messages)
+                    if carried_file_ids:
+                        messages = _attach_file_ids_to_last_user_message(messages, carried_file_ids)
+
+            uploaded_context_files: list[dict] = []
+            context_file_ids: list[str] = []
+            if context_files_raw:
+                resolved_context_files, uploaded_context_files = await _resolve_context_files(
+                    context_files_raw,
+                    script_name=(session_id or "shared"),
+                )
+                context_file_ids = await _hunyuan_files_upload_with_retries(
+                    resolved_context_files,
+                    retry_max=max(0, retry_max),
+                )
+                if context_file_ids and attach_file_ids_to_last_user:
+                    messages = _attach_file_ids_to_last_user_message(messages, context_file_ids)
+                if enable_deep_read is None and context_file_ids:
+                    enable_deep_read = True
+
+            messages = _trim_messages(messages, max_session_messages=max_session_messages)
+
             text_result = await _hunyuan_text_with_retries(
                 model=model,
                 messages=messages,
                 temperature=temperature,
                 top_p=top_p,
                 enable_enhancement=enable_enhancement,
+                enable_deep_read=enable_deep_read,
                 retry_max=max(0, retry_max),
             )
+
+            persisted_messages = messages + [{"Role": "assistant", "Content": text_result.get("text", "")}]
+            persisted_messages = _trim_messages(persisted_messages, max_session_messages=max_session_messages)
+            if session_id:
+                _save_text_session(session_id, persisted_messages)
+
             result = {
                 "success": True,
                 "provider": "hunyuan",
                 "api_action": "ChatCompletions",
                 "model": model,
                 "messages": messages,
+                "session_id": session_id or None,
+                "loaded_session_messages": loaded_session_messages,
+                "context_file_ids": context_file_ids,
+                "uploaded_context_files": uploaded_context_files,
+                "carry_forward_file_ids": carry_forward_file_ids,
+                "session_lock_wait_ms": session_lock_wait_ms,
                 **text_result,
             }
         except Exception as exc:
             result = {"success": False, "error": str(exc)}
+        finally:
+            if lock_token:
+                _release_text_session_lock(session_id, lock_token)
 
         return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
 
@@ -383,6 +503,7 @@ async def _hunyuan_text_with_retries(
     temperature: float | None,
     top_p: float | None,
     enable_enhancement: bool | None,
+    enable_deep_read: bool | None,
     retry_max: int,
 ) -> dict:
     attempt = 0
@@ -394,6 +515,7 @@ async def _hunyuan_text_with_retries(
                 temperature=temperature,
                 top_p=top_p,
                 enable_enhancement=enable_enhancement,
+                enable_deep_read=enable_deep_read,
             )
         except Exception as exc:
             msg = str(exc)
@@ -440,7 +562,18 @@ def _normalize_chat_messages(messages_raw: object, prompt: str, system_prompt: s
             if not content:
                 raise RuntimeError(f"messages[{idx}].content 不能为空")
 
-            normalized.append({"Role": role, "Content": content})
+            message: dict[str, Any] = {"Role": role, "Content": content}
+            file_ids_raw = item.get("file_ids")
+            if file_ids_raw is None:
+                file_ids_raw = item.get("FileIDs")
+            if file_ids_raw is not None:
+                if not isinstance(file_ids_raw, list):
+                    raise RuntimeError(f"messages[{idx}].file_ids 必须是字符串数组")
+                file_ids = [str(file_id).strip() for file_id in file_ids_raw if str(file_id).strip()]
+                if file_ids:
+                    message["FileIDs"] = file_ids
+
+            normalized.append(message)
 
         return normalized
 
@@ -453,6 +586,297 @@ def _normalize_chat_messages(messages_raw: object, prompt: str, system_prompt: s
         raise RuntimeError("prompt 为空且未提供有效 messages")
 
     return normalized
+
+
+def _trim_messages(messages: list[dict], max_session_messages: int) -> list[dict]:
+    max_len = max(2, min(40, int(max_session_messages or 40)))
+    if len(messages) <= max_len:
+        return messages
+
+    first = messages[0]
+    has_system = str(first.get("Role", "")).lower() == "system"
+    if has_system:
+        keep_tail = max(1, max_len - 1)
+        return [first, *messages[-keep_tail:]]
+    return messages[-max_len:]
+
+
+def _merge_messages(history_messages: list[dict], current_messages: list[dict], max_session_messages: int) -> list[dict]:
+    if not history_messages:
+        return _trim_messages(current_messages, max_session_messages)
+
+    merged = list(history_messages)
+    merged.extend(current_messages)
+    return _trim_messages(merged, max_session_messages)
+
+
+def _session_file_path(session_id: str) -> Path:
+    safe = _sanitize_script_name(session_id)
+    TEXT_SESSION_DIR.mkdir(parents=True, exist_ok=True)
+    return TEXT_SESSION_DIR / f"{safe}.json"
+
+
+def _session_lock_file_path(session_id: str) -> Path:
+    safe = _sanitize_script_name(session_id)
+    TEXT_SESSION_DIR.mkdir(parents=True, exist_ok=True)
+    return TEXT_SESSION_DIR / f"{safe}.lock"
+
+
+def _read_session_lock_meta(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(payload, dict):
+            return payload
+    except Exception:
+        pass
+    return {}
+
+
+def _try_create_text_session_lock(session_id: str, token: str) -> bool:
+    path = _session_lock_file_path(session_id)
+    payload = {"token": token, "created_at": time.time(), "pid": os.getpid()}
+
+    flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
+    try:
+        fd = os.open(str(path), flags)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, ensure_ascii=False)
+        return True
+    except FileExistsError:
+        return False
+
+
+def _remove_stale_text_session_lock(session_id: str, stale_sec: float) -> bool:
+    path = _session_lock_file_path(session_id)
+    if not path.is_file():
+        return False
+
+    lock_meta = _read_session_lock_meta(path)
+    created_at = float(lock_meta.get("created_at", 0) or 0)
+    if created_at <= 0:
+        return False
+
+    if (time.time() - created_at) <= max(1.0, stale_sec):
+        return False
+
+    path.unlink(missing_ok=True)
+    return True
+
+
+async def _acquire_text_session_lock(
+    session_id: str,
+    wait_timeout_sec: float,
+    poll_sec: float,
+    stale_sec: float,
+) -> tuple[str, int]:
+    if not session_id:
+        return "", 0
+
+    start = time.time()
+    timeout_sec = max(0.1, float(wait_timeout_sec or 0.1))
+    step_sec = max(0.05, float(poll_sec or 0.05))
+    token = f"{time.time_ns()}-{os.getpid()}"
+
+    while (time.time() - start) <= timeout_sec:
+        created = await asyncio.to_thread(_try_create_text_session_lock, session_id, token)
+        if created:
+            waited_ms = int((time.time() - start) * 1000)
+            return token, waited_ms
+
+        await asyncio.to_thread(_remove_stale_text_session_lock, session_id, stale_sec)
+        await asyncio.sleep(step_sec)
+
+    waited_ms = int((time.time() - start) * 1000)
+    return "", waited_ms
+
+
+def _release_text_session_lock(session_id: str, token: str) -> None:
+    if not session_id or not token:
+        return
+
+    path = _session_lock_file_path(session_id)
+    if not path.is_file():
+        return
+
+    lock_meta = _read_session_lock_meta(path)
+    if str(lock_meta.get("token", "")) != str(token):
+        return
+
+    path.unlink(missing_ok=True)
+
+
+def _load_text_session(session_id: str) -> list[dict]:
+    if not session_id:
+        return []
+
+    path = _session_file_path(session_id)
+    if not path.is_file():
+        return []
+
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(payload, list):
+            return []
+
+        normalized: list[dict] = []
+        for msg in payload:
+            if not isinstance(msg, dict):
+                continue
+            role = str(msg.get("Role") or msg.get("role") or "").strip().lower()
+            content = str(msg.get("Content") or msg.get("content") or "").strip()
+            if role not in {"system", "user", "assistant", "tool"}:
+                continue
+            if not content:
+                continue
+
+            item: dict[str, Any] = {"Role": role, "Content": content}
+            file_ids_raw = msg.get("FileIDs")
+            if isinstance(file_ids_raw, list):
+                file_ids = [str(file_id).strip() for file_id in file_ids_raw if str(file_id).strip()]
+                if file_ids:
+                    item["FileIDs"] = file_ids
+
+            normalized.append(item)
+
+        return normalized
+    except Exception:
+        return []
+
+
+def _save_text_session(session_id: str, messages: list[dict]) -> None:
+    if not session_id:
+        return
+
+    path = _session_file_path(session_id)
+    path.write_text(json.dumps(messages, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _clear_text_session(session_id: str) -> None:
+    if not session_id:
+        return
+
+    path = _session_file_path(session_id)
+    if path.is_file():
+        path.unlink(missing_ok=True)
+
+
+def _attach_file_ids_to_last_user_message(messages: list[dict], file_ids: list[str]) -> list[dict]:
+    if not file_ids:
+        return messages
+
+    for idx in range(len(messages) - 1, -1, -1):
+        msg = messages[idx]
+        if str(msg.get("Role", "")).lower() != "user":
+            continue
+
+        existing = msg.get("FileIDs")
+        merged: list[str] = []
+        if isinstance(existing, list):
+            merged.extend([str(item).strip() for item in existing if str(item).strip()])
+        merged.extend([str(item).strip() for item in file_ids if str(item).strip()])
+
+        deduped: list[str] = []
+        seen: set[str] = set()
+        for item in merged:
+            if item in seen:
+                continue
+            seen.add(item)
+            deduped.append(item)
+
+        msg["FileIDs"] = deduped
+        messages[idx] = msg
+        return messages
+
+    raise RuntimeError("未找到可附加 FileIDs 的 user 消息，请先提供 prompt 或 messages[user]")
+
+
+def _collect_recent_file_ids(messages: list[dict], limit_messages: int = 20, limit_file_ids: int = 8) -> list[str]:
+    if not messages:
+        return []
+
+    collected: list[str] = []
+    seen: set[str] = set()
+    inspected = 0
+
+    for msg in reversed(messages):
+        if inspected >= max(1, limit_messages):
+            break
+        inspected += 1
+
+        if str(msg.get("Role", "")).lower() != "user":
+            continue
+
+        file_ids_raw = msg.get("FileIDs")
+        if not isinstance(file_ids_raw, list):
+            continue
+
+        for file_id in file_ids_raw:
+            norm = str(file_id).strip()
+            if not norm or norm in seen:
+                continue
+            seen.add(norm)
+            collected.append(norm)
+            if len(collected) >= max(1, limit_file_ids):
+                return collected
+
+    return collected
+
+
+async def _resolve_context_files(context_files: list[str], script_name: str) -> tuple[list[dict], list[dict]]:
+    resolved: list[dict] = []
+    uploaded: list[dict] = []
+
+    for raw in context_files:
+        file_ref = str(raw).strip()
+        if not file_ref:
+            continue
+
+        file_name = Path(file_ref).name or "context.txt"
+        if _is_http_url(file_ref):
+            resolved.append({"name": file_name, "url": file_ref})
+            continue
+
+        local_path = _resolve_local_path(file_ref)
+        if local_path is None:
+            raise RuntimeError(f"上下文文件既不是 URL，也不是可访问本地文件：{file_ref}")
+
+        cos_url, existed = await asyncio.to_thread(_ensure_cos_reference_url, local_path, script_name)
+        resolved.append({"name": local_path.name, "url": cos_url})
+        uploaded.append(
+            {
+                "local_path": str(local_path),
+                "cos_url": cos_url,
+                "existed": existed,
+            }
+        )
+
+    return resolved, uploaded
+
+
+async def _hunyuan_files_upload_with_retries(files: list[dict], retry_max: int) -> list[str]:
+    file_ids: list[str] = []
+    for file_item in files:
+        attempt = 0
+        while True:
+            try:
+                file_id = await _hunyuan_upload_file(
+                    name=str(file_item.get("name", "context.txt")),
+                    url=str(file_item.get("url", "")),
+                )
+                if file_id:
+                    file_ids.append(file_id)
+                break
+            except Exception as exc:
+                msg = str(exc)
+                if attempt >= retry_max or not _is_retryable_error(msg):
+                    raise
+                sleep_sec = max(0.5, HUNYUAN_RETRY_BASE_SEC * (2 ** attempt))
+                await asyncio.sleep(sleep_sec)
+                attempt += 1
+
+    return file_ids
 
 
 def _infer_scene_type(filename: str, explicit: str) -> str:
@@ -698,6 +1122,7 @@ async def _hunyuan_text(
     temperature: float | None,
     top_p: float | None,
     enable_enhancement: bool | None,
+    enable_deep_read: bool | None,
 ) -> dict:
     """
     腾讯混元生文官方 API（ChatCompletions）
@@ -707,23 +1132,12 @@ async def _hunyuan_text(
         raise RuntimeError("未设置 TENCENT_SECRET_ID / TENCENT_SECRET_KEY")
 
     try:
-        from tencentcloud.common import credential
-        from tencentcloud.common.profile.client_profile import ClientProfile
-        from tencentcloud.common.profile.http_profile import HttpProfile
-        from tencentcloud.hunyuan.v20230901 import hunyuan_client, models
+        from tencentcloud.hunyuan.v20230901 import models
     except Exception as exc:
         raise RuntimeError("缺少腾讯云 SDK 依赖，请安装 tencentcloud-sdk-python") from exc
 
     def _invoke() -> dict:
-        cred = credential.Credential(TENCENT_SECRET_ID, TENCENT_SECRET_KEY, TENCENT_TOKEN or None)
-
-        http_profile = HttpProfile()
-        http_profile.endpoint = HUNYUAN_TEXT_ENDPOINT
-
-        client_profile = ClientProfile()
-        client_profile.httpProfile = http_profile
-
-        client = hunyuan_client.HunyuanClient(cred, HUNYUAN_REGION, client_profile)
+        client = _build_hunyuan_text_client()
 
         payload: dict = {
             "Model": model,
@@ -737,6 +1151,8 @@ async def _hunyuan_text(
             payload["TopP"] = float(top_p)
         if enable_enhancement is not None:
             payload["EnableEnhancement"] = bool(enable_enhancement)
+        if enable_deep_read is not None:
+            payload["EnableDeepRead"] = bool(enable_deep_read)
 
         req = models.ChatCompletionsRequest()
         req.from_json_string(json.dumps(payload, ensure_ascii=False))
@@ -764,6 +1180,50 @@ async def _hunyuan_text(
         }
 
     return await asyncio.to_thread(_invoke)
+
+
+async def _hunyuan_upload_file(name: str, url: str) -> str:
+    if not url.strip():
+        raise RuntimeError("文件上传 URL 不能为空")
+
+    try:
+        from tencentcloud.hunyuan.v20230901 import models
+    except Exception as exc:
+        raise RuntimeError("缺少腾讯云 SDK 依赖，请安装 tencentcloud-sdk-python") from exc
+
+    def _invoke() -> str:
+        client = _build_hunyuan_text_client()
+        req = models.FilesUploadsRequest()
+        req.Name = name or Path(urlparse(url).path).name or "context.txt"
+        req.URL = url
+        resp = client.FilesUploads(req)
+        resp_payload = json.loads(cast(Any, resp).to_json_string())
+        file_id = str(resp_payload.get("ID") or "").strip()
+        if not file_id:
+            raise RuntimeError("FilesUploads 未返回有效 ID")
+        return file_id
+
+    return await asyncio.to_thread(_invoke)
+
+
+def _build_hunyuan_text_client():
+    try:
+        from tencentcloud.common import credential
+        from tencentcloud.common.profile.client_profile import ClientProfile
+        from tencentcloud.common.profile.http_profile import HttpProfile
+        from tencentcloud.hunyuan.v20230901 import hunyuan_client
+    except Exception as exc:
+        raise RuntimeError("缺少腾讯云 SDK 依赖，请安装 tencentcloud-sdk-python") from exc
+
+    cred = credential.Credential(TENCENT_SECRET_ID, TENCENT_SECRET_KEY, TENCENT_TOKEN or None)
+
+    http_profile = HttpProfile()
+    http_profile.endpoint = HUNYUAN_TEXT_ENDPOINT
+
+    client_profile = ClientProfile()
+    client_profile.httpProfile = http_profile
+
+    return hunyuan_client.HunyuanClient(cred, HUNYUAN_REGION, client_profile)
 
 
 async def _resolve_reference_images(reference_images: list[str], script_name: str) -> tuple[list[str], list[dict]]:
