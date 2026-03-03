@@ -261,28 +261,44 @@ segment["display_break_lines"] = ["第一行", "第二行"]
 
 ## 4. 生文 API 使用
 
-### 4.1 阶段2 必须注入 planning_draft 全文作为上下文
+### 4.1 阶段2 必须注入 planning_draft 全文，且落盘时须同时保存 .txt 副本
 
 **问题**:
-仅传简短摘要给生文 API，导致正文与规划不一致。
+仅传简短摘要给生文 API，导致正文与规划不一致；或者落盘时只保存了 `.md` 而没有 `.txt` 副本，导致无法通过 `context_files` 上传，被迫退回 inline 注入（写入 `system_prompt`）。
 
 **原因**:
-生文 API 无法凭空记忆之前的规划，必须显式传入。
+- 生文 API 无法凭空记忆之前的规划，必须显式传入全文。
+- 混元 `context_files` 仅支持 `.txt` 格式（详见 § 2.2），若只有 `.md` 则无法上传。
+- Inline 注入 (`system_prompt`) 在内容短时可行，但随正文增长会超出消息长度限制，且不如文件上下文稳定。
 
 **正确做法**:
-```python
-# 1. 读取 planning_draft
-with open("scripts/电梯迷失/drafts/planning_draft.md", "r", encoding="utf-8") as f:
-    planning_content = f.read()
+阶段1落盘时必须同时写 `.md` 和 `.txt` 两个副本：
 
-# 2. 注入到 prompt 或 context_files
-result = mcp__playwright-image-gen__generate_text(
-    prompt=f"基于以下规划生成小说正文：\n\n{planning_content}\n\n---\n\n请续写第一章...",
-    session_id="novel_draft_session"
+```python
+planning_text = "..."  # 生文 API 返回内容
+
+# 1. 落盘 .md（可读性）
+with open("scripts/<name>/drafts/planning_draft.md", "w", encoding="utf-8") as f:
+    f.write(planning_text)
+
+# 2. 落盘 .txt（context_files 上传用）
+with open("scripts/<name>/drafts/planning_draft.txt", "w", encoding="utf-8") as f:
+    f.write(planning_text)
+```
+
+阶段2调用生文 API 时通过 `context_files` 注入：
+
+```python
+result = mcp_playwright-im_generate_text(
+    prompt="请基于规划草稿生成第一章正文...",
+    context_files=["scripts/<name>/drafts/planning_draft.txt"],
+    session_id="novel_draft_session",
+    use_session_history=True,
+    carry_forward_file_ids=True
 )
 ```
 
-**适用场景**: `create-script` 阶段2 生成正文草稿时。
+**适用场景**: `create-script` 阶段1落盘、阶段2 所有生文调用。
 
 ---
 
@@ -677,6 +693,35 @@ result = mcp__playwright-image-gen__generate_image(
 - 例如："竹林小路，夜晚" 可能被优化为 "竹林间幽静的小路，月光透过竹叶洒落，夜色朦胧，电影感构图，高清细节"
 
 **适用场景**: 使用混元3.0生成背景图或角色立绘时，建议开启以提升画质。
+
+---
+
+### 1.4 生图 API 会将 script_name 中的特殊字符替换为下划线，导致落盘目录与预期不符
+
+**问题**:
+调用生图 API 时传入 `script_name="励志打遍天下无敌手——我是指街霸6"`（含全角破折号 `——`），实际落盘目录变为 `scripts/励志打遍天下无敌手_我是指街霸6/assets/`（`——` 被替换为 `_`），与剧本主目录 `励志打遍天下无敌手——我是指街霸6` 不一致，产生两个目录。
+
+**原因**:
+MCP 生图服务在处理 `script_name` 时会将部分特殊字符（如全角破折号 `——`）转义为下划线，以生成合法文件系统路径。
+
+**正确做法**:
+生图 API 调用完成后，立即用 Python 将图片从下划线目录复制到正确目录，再删除多余目录：
+
+```python
+import os, shutil
+
+src = r"scripts/励志打遍天下无敌手_我是指街霸6/assets"
+dst = r"scripts/励志打遍天下无敌手——我是指街霸6/assets"
+
+for fname in os.listdir(src):
+    shutil.copy2(os.path.join(src, fname), os.path.join(dst, fname))
+
+shutil.rmtree(os.path.dirname(src))  # 删除多余目录
+```
+
+或在剧本命名阶段主动避免全角特殊字符（破折号、省略号等）。
+
+**适用场景**: 剧本名称包含全角破折号 `——`、省略号 `……` 等特殊字符时，所有生图 API 调用后应核对落盘路径。
 
 ---
 
