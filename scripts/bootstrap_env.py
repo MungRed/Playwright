@@ -125,6 +125,7 @@ def import_check() -> CheckResult:
     snippet = (
         "import tkinter\n"
         "import httpx\n"
+        "import pygame\n"
         "from PIL import Image\n"
         "from mcp.server import Server\n"
         "from qcloud_cos import CosConfig\n"
@@ -132,7 +133,7 @@ def import_check() -> CheckResult:
     )
     code, out = run([str(py), "-c", snippet])
     if code == 0:
-        return CheckResult("模块导入", True, "tkinter/httpx/Pillow/mcp/qcloud_cos 导入成功")
+        return CheckResult("模块导入", True, "tkinter/httpx/pygame/Pillow/mcp/qcloud_cos 导入成功")
     return CheckResult("模块导入", False, f"导入失败：{out[-300:]}")
 
 
