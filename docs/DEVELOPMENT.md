@@ -25,24 +25,23 @@
 - `.mcp/image_gen_server.py`：MCP 服务，封装腾讯混元生文（ChatCompletions）与生图（TextToImageLite / SubmitTextToImageJob）
 - `scripts/<script_name>/script.json`：剧本数据（视觉小说线性叙事）
 - `scripts/<script_name>/assets/*`：该剧本的背景图与人物图资源
+- `scripts/<script_name>/review.json`：剧本评分报告（可选，由 `review-script` skill 生成）
 - `scripts/bootstrap_env.py`：本地环境检查与初始化
 
 ---
 
 ## 4. 运行与开发
 
-### 4.1 启动项目
-
-```bash
-pip install pygame
-python main.py
-```
-
-### 4.2 初始化环境（推荐）
+### 4.1 初始化环境（推荐）
 
 ```bash
 python scripts/bootstrap_env.py
 ```
+
+该脚本会自动：
+- 创建虚拟环境 `.venv`
+- 安装所有依赖（包括 pygame）
+- 验证环境配置
 
 仅检查：
 
@@ -65,8 +64,7 @@ python scripts/bootstrap_env.py --check-only
 - 文本生产新增草稿落盘约定：阶段1/2 生文原文先保存到 `scripts/<script_name>/drafts/`，再由 agent 转换为 `script.json`。
 - 推荐草稿文件：`planning_draft.md`（规划）、`novel_draft.md`（正文）。
 - 一致性约束：阶段2生成 `novel_draft.md` 时，生文请求必须注入 `planning_draft.md` 内容（优先全文）作为上下文，避免前后文设定漂移。
-- 文风约束：阶段2 `novel_draft` 必须包含人物描写、环境描写与心理描写，并与对话混合；禁止全篇纯对白。
-
+- 文风约束：阶段2 `novel_draft` 必须包含人物描写、环境描写与心理描写，并与对话混合；禁止全篇纯对白。- 剧本评分报告：`scripts/<script_name>/review.json` 由 `review-script` skill 生成，包含多维度评分、优缺点分析与改进建议；不影响剧本运行。
 ### 5.1 线性格式
 
 - `segments` 为数组
@@ -99,6 +97,7 @@ python scripts/bootstrap_env.py --check-only
 	- `shared.asset_manifest`：段落资产映射（`segment_id`、`background_image`、`character_image`）
 	- `shared.pipeline_state`：阶段进度与统计信息
 		- 建议包含审稿分支字段：`review_after_stage2`（是否阶段2后审稿）与 `review_gate`（`pending_user_review|auto_continue|approved|regenerate_stage2`）
+		- 建议包含质量门禁字段：`quality_round`（当前重写轮次）、`quality_gate`（`pass|rewrite_pending|max_round_reached`）、`quality_scores`（最近一次评分摘要）
 - 兼容历史脚本：若仅有顶层 `planning`，可读取后迁移到 `shared.planning`。
 - 默认约定：用户未指定大纲来源时，`planning_source=ai_auto`。
 - 编排执行约定：阶段1（规划）需先确认 `review_after_stage2` 偏好；阶段2完成后，若为 `true` 则先暂停等待用户审稿并按反馈重生成或继续，若为 `false` 则自动连续执行阶段3-4。
@@ -227,6 +226,9 @@ python scripts/bootstrap_env.py
 ## 9. 最近变更记录
 
 ### 9.1 最近 12 条
+- 2026-03-04：调整 Git 忽略策略：`scripts/*/` 继续统一忽略剧本实例目录，且不再保留 `scripts/shared/**` 的跟踪例外；`scripts/shared` 作为本地运行缓存目录默认不纳入版本控制。
+- 2026-03-03：落地“写作质量闭环”：阶段2新增严格评审与硬门槛（`overall_score/literary_quality/character_development/creativity_theme`），不达标触发定向重写并复评（最多2轮）；在 `shared.pipeline_state` 新增 `quality_round/quality_gate/quality_scores` 建议字段。
+- 2026-03-03：新增 `review-script` skill，用于调用腾讯混元大模型对剧本进行多维度评分与分析，输出改进建议并保存到 `scripts/<script_name>/review.json`；评分维度包括故事完整性、角色塑造、文学质量、视觉小说适配度与创意主题；支持单剧本或批量评测。
 - 2026-03-03：根据银河铁道之夜制作踩坑经验，批量更新四个 skill：① `create-script`：`display_break_lines` 改为字符串数组、`text` 留空、JSON 写入必须用 `json.dumps`、自检不再校验整数断点；② `configure-script-presentation`：同步 `display_break_lines` 新格式约束，禁止 `text` 含 `\n`；③ `attach-script-assets`：`segment_id` 必须用 `segments[i].id` 字段值而非数字索引，路径写回前须磁盘核验；④ `generate-character-images`：写回 `character_refs` 时必须使用生图返回的实际文件名，不得按角色名推断（防止汉字拼写差异导致路径悬空）。
 - 2026-03-03：`display_break_lines` 改为字符串数组格式（每项=该步新增文本行，引擎累积拼接渲染）；`text` 字段在有 `display_break_lines` 时统一留空，消除内容重复，约减 40% 脚本文件体积。`_build_step_texts` 兼容旧整数断点格式。
 - 2026-03-03：修复最后一段播完后不显示剧终、以及长段不能分步推进的问题：① `_advance()` 在 `next_id is None` 时直接展示"— 终 —"并清空 `current_id`；② `_build_step_texts()` 在无 `display_break_lines` 时按中文句尾标点（`。！？…`）自动拆分为累积步进，每次按空格显示下一句。
@@ -238,6 +240,7 @@ python scripts/bootstrap_env.py
 - 2026-03-03：新增默认参考文章约定：阶段1/2可使用《铁道银河之夜》作风格参考（`theme_tone_only`），并明确禁止复刻原文/设定；同步到 skills 与 README。
 - 2026-03-03：补充编排"结果汇总"口径：需显式输出 `review_after_stage2` 与最终 `review_gate`，并同步 README。
 - 2026-03-03：同步 README：补充阶段2 `review_gate` 四种状态示例（`pending_user_review|approved|regenerate_stage2|auto_continue`）及分支语义。
+- 2026-03-03：将 pygame 添加到 `.mcp/requirements.txt` 并更新 `bootstrap_env.py` 导入检查，统一依赖管理；补充 Windows PowerShell 执行策略问题到常见问题排障。
 - 2026-03-03：补充编排模板：阶段2输出 `review_gate` 扩展为 `pending_user_review|auto_continue|approved|regenerate_stage2`，并增加审稿分支状态示例。
 
 ### 9.2 长期里程碑

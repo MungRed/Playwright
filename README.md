@@ -38,13 +38,23 @@
   - `Pillow>=10.0.0`
   - `tencentcloud-sdk-python>=3.0.1200`
   - `cos-python-sdk-v5>=1.9.37`
+  - `pygame>=2.5.0`
 
 ---
 
 ## 快速开始
 
+### 初始化环境（推荐）
+
 ```bash
-pip install pygame
+python scripts/bootstrap_env.py
+.venv\Scripts\python.exe main.py
+```
+
+### 直接运行（需手动安装依赖）
+
+```bash
+pip install pygame httpx Pillow
 python main.py
 ```
 
@@ -413,8 +423,9 @@ Playwright/
 
 ## 常见问题排障
 
-- 启动报错 `No module named pygame`：先执行 `pip install pygame`，再运行 `python main.py`。
-- 运行脚本后黑屏/无文本：检查脚本是否包含 `segments` 数组，每段须有 `text` 或 `display_break_lines` 字段（两者至少有一个非空）。
-- 背景或立绘不显示：优先使用相对剧本目录的路径（如 `assets/scene_xxx.png`）。
-- 生图调用失败：检查 `.vscode/mcp.json` 中腾讯云与 COS 相关配置是否完整。
-- 环境初始化失败：运行 `python scripts/bootstrap_env.py --check-only` 查看失败项，再按提示修复。
+- **启动报错 `No module named pygame`**：运行 `python scripts/bootstrap_env.py` 自动创建虚拟环境并安装依赖，或手动执行 `pip install pygame`。
+- **PowerShell 无法激活虚拟环境（禁止运行脚本）**：执行 `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`，或直接使用 `.venv\Scripts\python.exe main.py` 运行项目。
+- **运行脚本后黑屏/无文本**：检查脚本是否包含 `segments` 数组，每段须有 `text` 或 `display_break_lines` 字段（两者至少有一个非空）。
+- **背景或立绘不显示**：优先使用相对剧本目录的路径（如 `assets/scene_xxx.png`）。
+- **生图调用失败**：检查 `.vscode/mcp.json` 中腾讯云与 COS 相关配置是否完整。
+- **环境初始化失败**：运行 `python scripts/bootstrap_env.py --check-only` 查看失败项，再按提示修复。
