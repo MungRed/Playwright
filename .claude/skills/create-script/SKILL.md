@@ -1,197 +1,73 @@
 ---
 name: create-script
-description: 生成世界观、人设与剧本文本，采用“传统文本先行 + 本地转换 JSON”流程；不负责图片与资源回写。关键词：世界观, 人设, 剧本, 文本, 视觉小说, story, script
+description: 生成世界观、人设与剧本文本（传统文本先行 + 本地转换 JSON）；不负责图片资产回写。关键词：世界观, 人设, 剧本, 视觉小说
 ---
 
-## 功能说明
+## 目标
 
-用于生成或改写“纯文本层”内容（先生成传统文本，再转换为 JSON）：
-- 需求澄清结果（用户偏好摘要）
-- 世界观设定
-- 角色设定（人设）
-- 剧本大纲
-- 剧本段落文本（视觉小说线性叙事）
+面向“文本层”创作，产出并维护：
+- `shared.planning`（需求摘要/世界观/角色/大纲）
+- `drafts/planning_draft.*`、`drafts/novel_draft.*`
+- 基础 `script.json`（仅文本与演出字段，不含资产回写）
 
-本 skill **不负责**：`background.image`、`character_image` 回写、视觉演出参数与生图流程。
+## 强约束（单一真相）
 
-## 生成方式约束
+1. 阶段1/2文本必须调用 `mcp_playwright-im_generate_text` 生成。
+2. 长篇必须使用 `session_id + use_session_history=true`。
+3. 文件上下文只传 `.txt`（见 `PITFALLS.md §2.2`）。
+4. 阶段2必须注入阶段1 `planning_draft` 全文（优先 `context_files`）。
+5. 产物必须原创，不读取其他剧本正文做素材。
+6. `display_break_lines` 为可选节奏手法；使用时必须是字符串数组且 `text=""`。
+7. `effect` 为可选演出手法；若 `effect=typewriter`，`speed` 固定 `55`。
+8. 写回后必须执行双门：
+   - **结构门**：`python scripts/normalize_script_break_lines.py scripts/<script_name>/script.json --check`
+   - **AI质量门**：`python scripts/quality_gate_ai.py scripts/<script_name>/script.json --check`
 
-- 必须调用 MCP 生文工具：`mcp_playwright-im_generate_text`
-- 长篇任务使用 `session_id` + `use_session_history=true` 保留上下文
-- 超长上下文使用 `context_files`（仅支持 `.txt` 格式，详见 PITFALLS.md § 2.2）
-- 生文产物采用传统文本形态，再由 agent 本地转换为 JSON
-- 阶段2 `novel_draft` 必须为”叙事+对话混合”（详见 PITFALLS.md § 4.4）
-- 默认参考文章为《铁道银河之夜》：仅提取主题气质与叙事节奏，不复刻原文
+## 输入澄清（缺失才问）
 
-## 写作质量闭环（必须执行）
+- 剧本名、篇幅、风格、受众
+- 大纲来源：`ai_auto` 或 `user_keywords`
+- 若 `user_keywords`：补齐 `worldview/characters/outline`
+- 是否阶段2后人工审稿：`review_after_stage2`
 
-阶段2正文生成后，必须执行“评审→重写→复评”闭环：
+## 执行流程
 
-1. **严格评审（第1轮）**：
-   - 必须调用 `review-script`（或同等严格评审提示词）输出结构化评分
-   - 评审结果必须包含：`ratings`、`weaknesses`、`suggestions`、`example_segments`
-   - 评审提示词禁止“鼓励式措辞”，不得默认高分
+1. 读取 `scripts/<script_name>/script.json`，获取/创建 `shared`。
+2. 阶段1生文：生成规划草稿并保存 `planning_draft.md + planning_draft.txt`。
+3. 解析规划并写入 `shared.planning`（保留 `shared` 其他字段）。
+4. 阶段2生文：基于 `planning_draft` 生成正文草稿并保存 `novel_draft.md + novel_draft.txt`。
+5. 本地转换为 `segments`：
+   - 禁止 `text` 含 `\n`
+   - 需要分步时使用 `display_break_lines`
+6. 执行规范化脚本并通过 `--check` 门禁。
+7. 执行本地质量体检：`quality_audit.py` 输出 `metrics/issues/rewrite_prompt`。
+8. 若启用质量闭环：
+   - 先用 `quality_audit.py` 的问题清单做定向改写
+   - 再调用 `review-script` 做模型复评
+   - 按门槛重写（最多2轮）
 
-2. **门槛判定（硬规则）**：
-   - 若满足以下任一条件，必须触发重写：
-     - `overall_score < 6.8`
-     - `literary_quality < 6`
-     - `character_development < 6`
-     - `creativity_theme < 6`
+## 定向改写提示模板（直接可用）
 
-3. **定向重写（最多2轮）**：
-   - 仅针对低分项与 `weaknesses` 对应段落重写，禁止全稿无差别改写
-   - 重写提示词必须引用评审输出中的 `example_segments`
-   - 每轮重写后必须再次评审，直到达标或达到最大轮次
+- 文笔平：
+  - “请重写以下段落，保留剧情事实不变，增强画面细节（视觉/听觉/触觉）与句式变化，避免口号化表达。”
+- 角色同质化：
+  - “请将角色A与角色B的说话方式区分开：A偏___，B偏___；每段至少体现一处角色专属动作/语气。”
+- 节奏拖沓：
+  - “请把该段拆为2-3个信息步，采用‘引子→冲突→推进’结构；关键句放在每步末尾。”
+- 纯对白：
+  - “在不改变对白内容前提下，补充环境镜头、人物动作与心理活动，形成‘叙述+对白’混合段落。”。
 
-4. **落盘与状态记录**：
-   - 将最终评分写入 `scripts/<script_name>/review.json`
-   - 在 `shared.pipeline_state` 记录：`quality_round`、`quality_gate`、`quality_scores`
+## 最低输出要求
 
-## 草稿落盘约束
+- 文件路径：`script.json`、`planning_draft.*`、`novel_draft.*`
+- 统计信息：段落数、`changed_segments`、质量门禁状态
+- 共享数据：`shared.planning` 与 `shared.pipeline_state` 更新摘要
 
-- 阶段1/2 生文原文先落盘到 `scripts/<script_name>/drafts/`，再进行 JSON 转换
-- **必须同时保存 `.md` 和 `.txt` 两个副本**：`.md` 供人阅读，`.txt` 供 `context_files` 上传（详见 PITFALLS.md § 2.2）
-- 推荐文件：`planning_draft.md` + `planning_draft.txt`、`novel_draft.md` + `novel_draft.txt`
-- 阶段2 必须通过 `context_files` 注入 `planning_draft.txt`，禁止仅靠 inline `system_prompt` 注入（详见 PITFALLS.md § 4.1）
+## 快速自检清单
 
-## 原创约束
-
-- 禁止参考项目中已有剧本正文（`scripts/*/script.json`）作为素材来源
-- 仅允许读取当前目标脚本文件用于续写或修订
-
-## 共享数据读写（必须执行）
-
-- 统一从 `scripts/<script_name>/script.json` 顶层 `shared` 读取上下文。
-- 阶段1产物必须写入 `shared.planning`。
-- 若历史脚本存在顶层 `planning` 但无 `shared.planning`，需先兼容读取，并在写回时迁移到 `shared.planning`。
-- 写回时保留 `shared` 其他字段（如 `style_contract`、`character_refs`、`asset_manifest`）。
-
-## 执行步骤
-
-1. 确认任务范围：
-	- 新建文本内容（世界观/人设/剧本）或修改现有文本内容
-	- 若涉及 JSON 文件，先读取并定位目标段落 ID / 数组索引
-	- 若为新建创作，禁止读取其他 `scripts/*/script.json` 作为创意参考
-
-2. 按缺失信息提问（仅缺失时提问）：
-	- 用户希望的剧本形态：视觉小说（线性叙事）
-	- 大纲来源：`AI 自动生成` 或 `用户提供关键词`
-	- 若选择“用户提供关键词”，补齐：世界观关键词、人物设定关键词、剧情大纲关键词（可分别提供）
-	- 输出范围：仅世界观、仅人设、仅剧本，或三者组合
-	- 是否先产出“规划包”（人设+大纲+形态）
-	- 是否要求“基础剧本模式”（仅文本字段，不含任何资源路径）
-	- 参考文章（默认《铁道银河之夜》；仅作风格参考，不做复写）
-	- 剧本结构：线性（`segments: []`）
-	- `title`、`description`、目标篇幅与风格
-
-3. 生成与转换（两阶段）：
-	- 先组织生文提示词，调用 `mcp_playwright-im_generate_text` 生成传统文本：
-		- 规划草稿（需求摘要/世界观/人物/大纲）
-		- 正文草稿（传统小说或剧本对白体，不含 JSON 结构）
-	- 生成正文草稿时，必须把阶段1 `planning_draft` 作为输入上下文一并传给生文 API，确保设定与叙事一致。
-	- 对于分批续写，必须复用同一 `session_id`；每批完成后将 assistant 产物并入会话历史，再发下一批。
-	- 对于分批续写，若首批已使用 `context_files`，后续批次保持 `carry_forward_file_ids=true`，避免文件上下文丢失。
-	- 同一篇正文的连续分批续写，提示词默认要求“自然承接前文场景与情绪曲线”，不得强制“每批段尾留悬念”；仅在用户明确要求章节钩子时才添加悬念约束。
-	- 正文草稿中需显式体现视觉小说叙事层：
-		- 人物描写（动作/神态/语气）
-		- 环境描写（场景、时间、氛围）
-		- 心理描写（当下动机、情绪变化）
-	- 对话仅作为叙事组成部分，不得占满全部段落。
-	- 先将草稿落盘到 `scripts/<script_name>/drafts/*.md`
-	- 再由 agent 本地解析草稿并转换到剧本 JSON 结构
-	- 视觉小说标准结构：`title`、`description`、`segments`（数组）
-	- 顶层确保存在 `shared`，并写入/更新 `shared.planning`
-	- `shared.planning` 必须写入 `planning_source`：`ai_auto` 或 `user_keywords`
-	- 若 `planning_source=user_keywords`，写入 `shared.planning.user_keywords`（按用户提供原意归档）
-	- 若用户选择关键词模式，世界观/人设/大纲必须优先吸收关键词，不得忽略核心约束
-	- 段落字段仅生成文本相关：`text`、`next`、`speaker`（可选）
-	- `text` 字段禁止包含 `\n`；分行控制完全通过 `display_break_lines` 实现
-	- `display_break_lines` 采用**字符串数组**格式：每项为该步骤新增的一行文本（非累积）；引擎按步累积拼接渲染
-	- 有 `display_break_lines` 时，`text` 留空 `""`，避免内容重复导致 JSON 过大
-	- 可生成 `speaker` 作为文本标注，但不生成图片路径字段
-	- **JSON 写入安全**：转换后必须使用 `json.dumps(data, ensure_ascii=False, indent=2)` 写入文件，禁止手工拼接 JSON 字符串（手工拼接易引入中文引号 `"` `"` 等非法字符导致解析失败）
-
-4. 自检并修复：
-	- 草稿文件存在且可读取（阶段1/2）
-	- 阶段2生文调用日志/提示词中可追溯 `planning_draft` 已被注入（或在产物记录中体现该输入来源）
-	- 阶段2正文草稿不得为“全段均是 角色名：台词”格式；若检测为纯对白，必须重生文。
-	- 所有 `next`（若存在）必须指向存在段落 ID
-	- 不生成交互跳转字段（如 `choices`）
-	- 若生成 `display_break_lines`，必须为**字符串数组**；每项对应一步的新增文本行，不得为空字符串；`text` 字段同时设为 `""`
-	- 若段落 `text` 非空（无 `display_break_lines`），必须不含 `\n`
-	- 若段落 `effect` 为 `typewriter` 且包含 `speed`，统一使用固定值 `55`
-	- `shared.planning` 字段完整（`requirements_summary`、`worldview`、`characters`、`outline`、`script_form`、`planning_source`）
-	- 若 `planning_source=user_keywords`，`shared.planning.user_keywords` 不得缺失
-	- 若执行了质量闭环，`review.json` 必须存在，且 `quality_gate` 状态明确（`pass|rewrite_pending|max_round_reached`）
-	- 检查套路化风险：主角成长是否仅“挫败→努力→胜利”单线重复；若是，至少补一处价值冲突或动机反转
-	- 不输出注释，不输出图片/演出字段
-
-5. 写入文件并输出摘要：
-	- 草稿路径、脚本路径、脚本类型、段落数、是否为基础剧本
-	- 世界观/人设/大纲/剧本是否已覆盖
-	- 大纲来源模式（`ai_auto` / `user_keywords`）与关键词吸收情况
-	- `shared` 读写情况（读取了哪些字段、写入了哪些字段）
-	- 原创性声明（未参考项目内其他剧本正文）
-
-## 规划包输出模板（用于编排阶段1）
-
-```json
-{
-	"shared": {
-		"planning": {
-	"requirements_summary": "...",
-	"script_form": "visual_novel",
-	"planning_source": "ai_auto",
-	"worldview": "...",
-	"characters": [
-		{ "name": "林澈", "profile": "..." }
-	],
-	"reference_article": {
-		"title": "铁道银河之夜",
-		"usage": "theme_tone_only"
-	},
-	"outline": [
-		{ "chapter": 1, "summary": "..." }
-	],
-	"user_keywords": {
-		"worldview": ["废土", "高塔城"],
-		"characters": ["失忆女主", "机械师导师"],
-		"outline": ["试炼", "背叛", "真相反转"]
-	}
-		}
-	}
-}
-```
-
-## 默认值（用户未指定时）
-
-- 新建脚本默认采用视觉小说线性结构
-- 剧本文本默认第三人称叙述，强制包含人物/环境/心理描写，并在关键段落插入对话
-- 未指定剧本形态时，默认视觉小说（`visual_novel`）
-- 未指定大纲来源时，默认 `planning_source=ai_auto`
-
-## 示例（纯文本线性脚本）
-
-```json
-{
-  "title": "迷雾车站",
-  "description": "一个发生在深夜车站的短篇故事",
-  "segments": [
-		{
-			"id": "s1",
-			"text": "",
-			"display_break_lines": [
-				"午夜时分，你独自站在空荡站台。",
-				"远处传来列车鸣笛，雾气逐渐逼近。"
-			],
-			"next": "s2"
-		},
-		{
-			"id": "s2",
-			"text": "月台灯忽明忽暗，你感到一阵不安。",
-			"speaker": "旅人"
-		}
-  ]
-}
-```
+- `shared.planning` 是否完整（含 `planning_source`）
+- `segments` 是否线性可达（`next` 合法）
+- `display_break_lines` 使用处是否满足结构规则
+- `typewriter` 段落是否 `speed=55`
+- `normalize_script_break_lines.py --check` 是否返回 `changed_segments=0`
+- `quality_audit.py --check` 是否通过
