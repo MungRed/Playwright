@@ -101,6 +101,12 @@ class PygameVNApp:
         self.sb_current_raw_text: str = ""
         self.sb_prefix_sb_idx: int = -1
 
+        # 阅读区正文滚动状态（当单次分镜文本超出窗口高度时可滚动）
+        self.text_scroll_px = 0
+        self.text_max_scroll_px = 0
+        self.text_scroll_step = 48
+        self.text_auto_follow_bottom = True
+
     def run(self):
         while self.running:
             now = pygame.time.get_ticks()
@@ -229,8 +235,11 @@ class PygameVNApp:
                         self._advance()
                     elif event.key == pygame.K_BACKSPACE:
                         self._go_back()
-            elif event.type == pygame.MOUSEWHEEL and self.mode == "menu":
-                self._scroll_menu(-event.y)
+            elif event.type == pygame.MOUSEWHEEL:
+                if self.mode == "menu":
+                    self._scroll_menu(-event.y)
+                else:
+                    self._scroll_reader_text(-event.y * self.text_scroll_step)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if self.mode == "menu":
                     if event.button == 1:
@@ -239,8 +248,13 @@ class PygameVNApp:
                         self._scroll_menu(-1)
                     elif event.button == 5:
                         self._scroll_menu(1)
-                elif event.button == 1:
-                    self._advance()
+                else:
+                    if event.button == 1:
+                        self._advance()
+                    elif event.button == 4:
+                        self._scroll_reader_text(-self.text_scroll_step)
+                    elif event.button == 5:
+                        self._scroll_reader_text(self.text_scroll_step)
 
     def _update(self, now: int):
         if self.mode == "reader":
@@ -487,6 +501,9 @@ class PygameVNApp:
         self.anim_target_text = text
         self.anim_effect = effect
         self.anim_speed = TYPEWRITER_SPEED if effect == "typewriter" else max(8, speed)
+        self.text_scroll_px = 0
+        self.text_max_scroll_px = 0
+        self.text_auto_follow_bottom = True
 
         if self.step_index > 0 and self.step_texts:
             prev = self.step_texts[self.step_index - 1]
@@ -646,7 +663,7 @@ class PygameVNApp:
 
     def _draw_right_sidebar(self, right_rect: pygame.Rect):
         is_narration = self.current_speaker == "旁白"
-        title = self.font_h2.render("旁白" if is_narration else "人物", True, FG_DIM if is_narration else FG_MAIN)
+        title = self.font_h2.render("旁白" if is_narration else "人物", True, FG_MAIN)
         self.screen.blit(title, (right_rect.left + 18, right_rect.top + 18))
 
         max_pw = right_rect.width - 28
@@ -680,6 +697,7 @@ class PygameVNApp:
         for line in (
             "空格 / 左键：继续",
             "动画中空格：跳过",
+            "滚轮：上下滚动正文",
             "BackSpace：回退",
             "ESC：返回菜单",
         ):
@@ -697,10 +715,34 @@ class PygameVNApp:
         else:
             txt = self.anim_target_text[: self.anim_char_index]
 
-        color = SHAKE_RED if self.anim_effect == "shake" else (FG_DIM if self.current_speaker == "旁白" else FG_MAIN)
+        # 正文统一使用默认颜色，不再因 speaker/effect 改变颜色
+        color = FG_MAIN
         offset_x = shake_x if self.anim_effect == "shake" and self.animating else 0
         offset_y = shake_y if self.anim_effect == "shake" and self.animating else 0
-        self._draw_outlined_multiline(txt, self.font_main, color, text_rect, offset_x, offset_y)
+        self.text_max_scroll_px = self._draw_outlined_multiline(
+            txt,
+            self.font_main,
+            color,
+            text_rect,
+            self.text_scroll_px,
+            offset_x,
+            offset_y,
+        )
+        if self.text_auto_follow_bottom and self.text_max_scroll_px > 0:
+            self.text_scroll_px = self.text_max_scroll_px
+        self.text_scroll_px = max(0, min(self.text_scroll_px, self.text_max_scroll_px))
+
+        if self.text_max_scroll_px > 0:
+            track_h = max(80, text_rect.height // 4)
+            track = pygame.Rect(text_rect.right - 6, text_rect.top + 4, 4, text_rect.height - 8)
+            pygame.draw.rect(self.screen, (52, 52, 78), track, border_radius=4)
+
+            thumb_h = max(32, int(track.height * (text_rect.height / max(text_rect.height, text_rect.height + self.text_max_scroll_px))))
+            travel = max(0, track.height - thumb_h)
+            ratio = self.text_scroll_px / max(1, self.text_max_scroll_px)
+            thumb_y = track.top + int(travel * ratio)
+            thumb = pygame.Rect(track.left, thumb_y, track.width, thumb_h)
+            pygame.draw.rect(self.screen, (136, 136, 170), thumb, border_radius=4)
 
     def _draw_outlined_multiline(
         self,
@@ -708,21 +750,43 @@ class PygameVNApp:
         font: pygame.font.Font,
         color: tuple[int, int, int],
         rect: pygame.Rect,
+        scroll_px: int = 0,
         ox: int = 0,
         oy: int = 0,
-    ):
+    ) -> int:
         lines = self._wrap_text(text, font, rect.width)
         line_h = font.get_linesize() + self.text_line_gap
-        y = rect.top + oy
+        content_h = len(lines) * line_h
+        max_scroll = max(0, content_h - rect.height)
+        scroll_px = max(0, min(scroll_px, max_scroll))
+
+        y = rect.top + oy - scroll_px
         for line in lines:
+            if y + line_h < rect.top:
+                y += line_h
+                continue
+            if y > rect.bottom:
+                break
             base = font.render(line, True, color)
             for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)):
                 stroke = font.render(line, True, (0, 0, 0))
                 self.screen.blit(stroke, (rect.left + ox + dx, y + dy))
             self.screen.blit(base, (rect.left + ox, y))
             y += line_h
-            if y > rect.bottom:
-                break
+        return max_scroll
+
+    def _scroll_reader_text(self, delta_px: int):
+        if self.mode != "reader" or delta_px == 0:
+            return
+        if self.text_max_scroll_px <= 0:
+            self.text_scroll_px = 0
+            self.text_auto_follow_bottom = True
+            return
+
+        self.text_auto_follow_bottom = False
+        self.text_scroll_px = max(0, min(self.text_scroll_px + delta_px, self.text_max_scroll_px))
+        if self.text_scroll_px >= self.text_max_scroll_px:
+            self.text_auto_follow_bottom = True
 
     @staticmethod
     def _normalize_text(text: str) -> str:
