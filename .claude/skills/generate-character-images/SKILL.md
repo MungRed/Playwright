@@ -1,65 +1,36 @@
 ---
 name: generate-character-images
-description: 根据人设调用生图 API 生成角色设定图，输出可用于人物栏的图片资源。关键词：人物, 人设, 生图, 角色设定图, portrait
+description: 根据剧本人设生成角色设定图（阶段3-人设子阶段），支持独立执行并写回 shared.character_refs。关键词：人物, 人设, 生图, character refs
 ---
 
-## 功能说明
+## 职责
 
-根据角色文本设定（外观、服装、气质、年龄感等）生成人物设定图，并保存到 `scripts/<script_name>/assets/`。
+根据 `shared.planning.characters` 生成人设图，并写回 `shared.character_refs`。
 
-人物设定图采用“行业常见角色设定单”标准：
-- 主视图（Front）
-- 侧视图（Side）
-- 后视图（Back）
-- 装饰细节（配饰/鞋履/道具局部）
+说明：本 skill 是“模块3图片资产生成”的可选辅助能力，不是主流程三模块之一。
 
-## 共享数据读写（必须执行）
+## 文档先行（必须）
 
-- 默认从脚本 `shared.planning.characters` 读取人物设定；仅在缺失时才使用外部传入角色参数。
-- 读取 `shared.style_contract.character_style_anchor` 与 `shared.style_contract.character_negative_anchor` 作为人物专用锚点。
-- 生成完成后写回 `shared.character_refs`（角色 -> 设定图路径）。
-- 同步更新 `shared.pipeline_state`（阶段3完成、生成数量、复用数量）。
+- 执行前确认资产阶段文档已说明：角色清单、风格锚点、输出验收标准。
 
-## 执行步骤
+## 关键约束
 
-1. 收集输入：
-   - 剧本名（用于落盘目录）
-   - 阶段1规划包中的人物设定（优先读取 `shared.planning`）
-   - 角色名、性别表现、年龄段、外观关键词、服装关键词、风格关键词
-   - 图片比例（默认横向设定单）与数量（默认 1）
+1. 优先读取 `shared.planning.characters`，缺失时再向用户补齐最小人设信息。
+2. 必须使用 `assets/_style_contract.json` 中的角色风格锚点。
+3. 设定图必须为“三视图”（正面/侧面/背面）角色设定单。
+4. 输出写入 `scripts/<script_name>/assets/char_ref_<name>_v1.png`。
+5. 三视图设定图用于后续图生图参考，不可直接作为阅读器 `character_image`。
+6. 写回时只更新 `shared.character_refs` 与 `shared.pipeline_state`。
 
-2. 生成提示词（允许长提示词，优先完整约束）：
-   - 正向提示词：角色核心特征 + 服装材质 + 配色方案 + 三视图版式 + 细节特写要求 + 画风约束 + 线稿与上色质量要求
-   - 反向提示词：低质量、模糊、水印、文本、畸形
-   - 必须拼接 `shared.style_contract.character_style_anchor` 与 `shared.style_contract.character_negative_anchor`
-   - 推荐长提示词模板：
-     1) 角色身份与年龄感
-     2) 发型/五官/体型与辨识特征
-     3) 服装层次、材质与配色
-     4) 构图与镜头（半身/胸像/正侧背）
-     5) 线条、阴影、边缘清晰度、可叠加背景约束
+## 执行流程
 
-3. 调用生图 API：
-   - 使用仓库已有生图工具生成图片
-   - 默认尺寸：`1536x1024`（横向设定单，容纳三视图与细节区）
-   - 保存路径：`scripts/<script_name>/assets/char_ref_<character>_v1.png`
-   - 调用参数建议：`scene_type=character`、`enforce_style=true`、`retry_max>=2`
+1. 读取 `shared`：`planning`、`style_contract`、`character_refs`。
+2. 为每个角色构造三视图提示词（角色特征 + 服装 + 正侧背构图 + 风格锚点）。
+3. 调用生图工具批量生成或复用已存在设定图。
+4. 写回 `shared.character_refs` 与阶段统计。
 
-4. 结果检查：
-   - 图片可打开、尺寸正确、命名可追踪
-   - 写回 `shared.character_refs` 时，路径必须使用实际返回的文件名（详见 PITFALLS.md § 1.2）
-   - 输出给用户：路径、提示词摘要、可选迭代方向
+## 输出
 
-## 默认值
-
-- 默认风格：二次元视觉小说角色设定单风格
-- 默认数量：1
-- 默认尺寸：1536x1024
-- 单角色默认先生成 1 张基准设定图，后续按需要增量生成
-
-## 注意事项
-
-- 本 skill 只负责角色设定图，不改剧本 JSON。
-- 本 skill 不改 `segments` 文本内容，但必须维护 `shared.character_refs`。
-- 若用户未提供关键人设，先要求最少信息后再生成。
-- 不生成暴力、违规内容。
+- 新增与复用数量
+- 每个角色对应的设定图路径
+- 失败项与建议重试策略

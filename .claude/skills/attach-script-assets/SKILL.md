@@ -1,68 +1,26 @@
 ---
 name: attach-script-assets
-description: 将已生成的背景图与人物立绘路径回写到剧本 JSON，用于最终资源绑定。关键词：回写, 资源绑定, background.image, character_image, 剧本
+description: 将 shared.asset_manifest 中的背景图与立绘路径回写到剧本段落，用于阶段3最终资产绑定。关键词：回写, 资源绑定, asset_manifest
 ---
 
-## 功能说明
+## 职责
 
-将资产生成阶段产出的文件路径写回剧本段落：
+仅做最终资产路径绑定：
 - `background.image`
 - `character_image`
 
-本 skill 只处理“路径绑定”，不生成文本、不生成图片、不配置演出字段。
+说明：本 skill 是“模块3图片资产生成”完成后的可选绑定步骤，不是主流程三模块之一。
 
-## 共享数据读写（必须执行）
+## 关键规则
 
-- 默认从脚本 `shared.asset_manifest` 读取映射清单；外部传入清单仅作为覆盖输入。
-- 写回完成后更新 `shared.pipeline_state`（阶段4-attach 完成、回写段落数、跳过数）。
-- 保留 `shared` 其他字段（`planning`、`style_contract`、`character_refs`）。
+1. 默认从 `shared.asset_manifest` 读取映射。
+2. `segment_id` 必须匹配段落 `id`。
+3. 写回前核验资源路径存在。
+4. 只更新目标字段，保留段落与 `shared` 其他内容。
 
-## 执行步骤
+## 执行流程
 
-1. 读取输入：
-   - 目标剧本路径
-   - 资产清单（`segment_id` -> 背景图路径、人物图路径，默认取 `shared.asset_manifest`）
-   - 回写策略：仅补缺或允许覆盖（默认仅补缺）
-
-2. 识别剧本结构：
-   - 线性：`segments: []`
-
-3. 执行最小回写：
-   - 有背景映射时写入 `background.image`
-   - 有人物映射时写入 `character_image`
-   - 保留段落已有 `effect`、`speed`、`text`
-
-4. 一致性校验：
-   - `segment_id` 必须使用段落 `id` 字段值，不得使用数组索引（详见 PITFALLS.md § 1.3）
-   - 路径写回前必须核验文件实际存在（详见 PITFALLS.md § 1.2）
-   - 路径建议使用相对路径 `assets/...`
-   - 不创建无映射的空字段
-
-5. 输出结果：
-   - 成功回写段落数
-   - 新增/跳过/覆盖统计
-   - `shared.pipeline_state` 更新结果
-   - 最终剧本路径
-
-## 默认值
-
-- 回写策略默认“仅补缺，不覆盖已有路径”
-
-## 输入清单模板
-
-```json
-[
-   {
-      "segment_id": "s1",
-      "background_image": "assets/scene_s1.png",
-      "character_image": "assets/char_林澈_calm.png"
-   }
-]
-```
-
-## 注意事项
-
-- 不修改剧情文本逻辑。
-- 不负责图片生成；依赖 `generate-scene-assets` 的产物。
-- 保持精确改动，避免无关格式化。
-- 若 `shared.asset_manifest` 为空，应中止并提示先执行场景资产阶段。
+1. 读取 `script.json` 与 `shared.asset_manifest`。
+2. 按段落 `id` 执行最小回写（默认仅补缺）。
+3. 更新 `shared.pipeline_state`（绑定完成、统计信息）。
+4. 输出回写统计与未命中项。
