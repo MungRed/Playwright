@@ -61,11 +61,14 @@ class PygameVNApp:
         self.menu_scroll = 0
         self.current_script_dir = SCRIPTS_DIR
 
-        self.segments: dict[str, dict] = {}
-        self.current_id = ""
-        self.history: list[str] = []
+        self.storyboards: list[dict] = []
+        self.current_storyboard_idx = 0
+        self.current_script_idx = 0
+        self.history: list[tuple[int, int]] = []
         self.total_linear = 0
         self.script_title = ""
+        self.current_storyboard_title = ""
+        self.current_speaker = ""
 
         self.step_texts: list[str] = []
         self.step_index = 0
@@ -92,6 +95,11 @@ class PygameVNApp:
         self.scaled_image_cache: dict[tuple[str, int, int], pygame.Surface] = {}
         self.portrait_scaled_cache: dict[tuple[str, int, int], pygame.Surface] = {}
         self.character_image_path: str | None = None
+
+        # 同一分镜内累积显示：记录已完成 script 的原始文本
+        self.sb_completed_texts: list[str] = []
+        self.sb_current_raw_text: str = ""
+        self.sb_prefix_sb_idx: int = -1
 
     def run(self):
         while self.running:
@@ -318,45 +326,68 @@ class PygameVNApp:
             with open(script_path, encoding="utf-8-sig") as f:
                 data = json.load(f)
         except Exception as exc:
-            self.segments = {"0": {"text": f"脚本加载失败：{exc}", "effect": "typewriter", "speed": TYPEWRITER_SPEED}}
+            self.storyboards = []
             self.script_title = "加载失败"
-            self.total_linear = 1
-            self.current_id = "0"
+            self.total_linear = 0
             self.current_script_dir = os.path.dirname(script_path)
             self.history = []
             self.mode = "reader"
+            self.anim_target_text = f"脚本加载失败：{exc}"
+            self.anim_char_index = len(self.anim_target_text)
             self._show_segment()
             return
 
         self.current_script_dir = os.path.dirname(script_path)
+        raw_storyboards = data.get("storyboards", [])
+        if not isinstance(raw_storyboards, list) or not raw_storyboards:
+            self.storyboards = []
+            self.script_title = data.get("title", "剧本")
+            self.total_linear = 0
+            self.history = []
+            self.mode = "reader"
+            self.anim_target_text = "脚本格式错误：仅支持 storyboards -> scripts 结构"
+            self.anim_char_index = len(self.anim_target_text)
+            self._show_segment()
+            return
 
-        raw = data.get("segments", [])
-        self.segments = {}
-        if isinstance(raw, list):
-            self.total_linear = len(raw)
-            # 优先使用 segment 自带 id 字段作为键，兼容纯数字索引旧脚本
-            keys = [str(seg.get("id", i)) for i, seg in enumerate(raw)]
-            for i, seg in enumerate(raw):
-                seg = dict(seg)
-                seg.pop("choices", None)
-                if "next" not in seg and i + 1 < len(raw):
-                    seg["next"] = keys[i + 1]
-                self.segments[keys[i]] = seg
-            first_key = keys[0] if keys else "0"
-            self.current_id = data.get("start", first_key)
-        else:
-            self.total_linear = len(raw)
-            for k, v in raw.items():
-                seg = dict(v)
-                seg.pop("choices", None)
-                self.segments[str(k)] = seg
-            self.current_id = data.get("start", next(iter(self.segments), ""))
+        self.storyboards = []
+        for sb_idx, sb in enumerate(raw_storyboards, start=1):
+            if not isinstance(sb, dict):
+                continue
+            scripts = sb.get("scripts", [])
+            if not isinstance(scripts, list) or not scripts:
+                continue
+            normalized_scripts = [dict(seg) for seg in scripts if isinstance(seg, dict)]
+            if not normalized_scripts:
+                continue
+
+            self.storyboards.append(
+                {
+                    "id": str(sb.get("id", f"sb{sb_idx}")),
+                    "title": str(sb.get("title", f"分镜{sb_idx}")),
+                    "background": sb.get("background") if isinstance(sb.get("background"), dict) else {},
+                    "scripts": normalized_scripts,
+                }
+            )
+
+        self.total_linear = sum(len(sb.get("scripts", [])) for sb in self.storyboards)
+        if not self.storyboards or self.total_linear == 0:
+            self.mode = "reader"
+            self.anim_target_text = "脚本格式错误：storyboards 为空"
+            self.anim_char_index = len(self.anim_target_text)
+            self._show_segment()
+            return
+
+        self.current_storyboard_idx = 0
+        self.current_script_idx = 0
 
         self.script_title = data.get("title", "剧本")
         self.history = []
         self.step_seg_id = ""
         self.step_texts = []
         self.step_index = 0
+        self.current_storyboard_title = ""
+        self.current_speaker = ""
         self.screen = self._set_window_size(
             OUTER_MARGIN * 2 + LEFT_BAR_WIDTH + CENTER_WIDTH + RIGHT_BAR_WIDTH,
             CENTER_HEIGHT,
@@ -380,14 +411,17 @@ class PygameVNApp:
     def _go_back(self):
         if self.animating or not self.history:
             return
-        self.current_id = self.history.pop()
+        self.current_storyboard_idx, self.current_script_idx = self.history.pop()
         self.step_seg_id = ""
         self.step_texts = []
         self.step_index = 0
+        self.sb_completed_texts = []
+        self.sb_current_raw_text = ""
+        self.sb_prefix_sb_idx = -1
         self._show_segment()
 
     def _advance(self):
-        seg = self.segments.get(self.current_id, {})
+        seg = self._current_segment() or {}
         if self.animating:
             self.anim_char_index = len(self.anim_target_text)
             self.animating = False
@@ -398,33 +432,48 @@ class PygameVNApp:
             self._show_segment()
             return
 
-        next_id = seg.get("next")
-        if next_id is not None:
-            self.history.append(self.current_id)
-            self.current_id = str(next_id)
-            self.step_seg_id = ""
-            self.step_texts = []
-            self.step_index = 0
-            self._show_segment()
-        else:
-            # 最后一段播完，显示剧终画面
+        prev_sb_idx = self.current_storyboard_idx
+        self.history.append((self.current_storyboard_idx, self.current_script_idx))
+        if not self._move_to_next_segment():
             self.animating = False
             self.anim_target_text = "— 终 —\n故事结束，按 ESC 返回菜单"
             self.anim_char_index = len(self.anim_target_text)
-            self.current_id = ""  # 清空使后续按键无效
+            return
+        if self.current_storyboard_idx == prev_sb_idx:
+            # 同一分镜内前进：保存刚完成 script 的原始文本
+            self.sb_completed_texts.append(self.sb_current_raw_text)
+            self.sb_prefix_sb_idx = prev_sb_idx
+        else:
+            # 进入新分镜：重置累积
+            self.sb_completed_texts = []
+            self.sb_current_raw_text = ""
+            self.sb_prefix_sb_idx = self.current_storyboard_idx
+        self.step_seg_id = ""
+        self.step_texts = []
+        self.step_index = 0
+        self._show_segment()
 
     def _show_segment(self):
-        seg = self.segments.get(self.current_id)
+        seg = self._current_segment()
         if not seg:
             self.animating = False
             self.anim_target_text = "— 终 —\n故事结束，按 ESC 返回菜单"
             self.anim_char_index = len(self.anim_target_text)
             return
 
-        if self.step_seg_id != self.current_id:
-            self.step_texts = self._build_step_texts(seg)
+        self.current_storyboard_title = str(self.storyboards[self.current_storyboard_idx].get("title", "分镜"))
+        seg_id = str(seg.get("id", f"sb{self.current_storyboard_idx + 1}_s{self.current_script_idx + 1}"))
+
+        if self.step_seg_id != seg_id:
+            raw_steps = self._build_step_texts(seg)
+            self.sb_current_raw_text = raw_steps[-1] if raw_steps else ""
+            if self.current_storyboard_idx == self.sb_prefix_sb_idx and self.sb_completed_texts:
+                sb_prefix = "\n".join(self.sb_completed_texts)
+                self.step_texts = [sb_prefix + "\n" + s for s in raw_steps]
+            else:
+                self.step_texts = raw_steps
             self.step_index = 0
-            self.step_seg_id = self.current_id
+            self.step_seg_id = seg_id
 
         text = self.step_texts[self.step_index] if self.step_texts else self._normalize_text(str(seg.get("text", "")))
         effect = str(seg.get("effect", "typewriter")).lower()
@@ -443,7 +492,12 @@ class PygameVNApp:
             prev = self.step_texts[self.step_index - 1]
             self.anim_append_start = len(prev) if text.startswith(prev) else 0
         else:
-            self.anim_append_start = 0
+            # 打字机从前缀之后开始
+            if self.current_storyboard_idx == self.sb_prefix_sb_idx and self.sb_completed_texts:
+                sb_prefix = "\n".join(self.sb_completed_texts)
+                self.anim_append_start = len(sb_prefix) + 1  # +1 for "\n"
+            else:
+                self.anim_append_start = 0
 
         now = pygame.time.get_ticks()
         if effect == "typewriter":
@@ -459,7 +513,8 @@ class PygameVNApp:
             self.animating = False
 
     def _configure_background(self, seg: dict):
-        bg = seg.get("background", {})
+        sb = self.storyboards[self.current_storyboard_idx] if self.storyboards else {}
+        bg = sb.get("background", {})
         if not isinstance(bg, dict):
             return
         path = self._resolve_asset_path(bg.get("image"))
@@ -483,9 +538,15 @@ class PygameVNApp:
             self.bg_shake_strength = max(1, int(bg.get("shake_strength", 10)))
 
     def _configure_character(self, seg: dict):
+        self.current_speaker = str(seg.get("speaker", "")).strip()
+        if self.current_speaker == "旁白":
+            self.character_image_path = None
+            return
         path = self._resolve_asset_path(seg.get("character_image"))
         if path:
             self.character_image_path = path
+        else:
+            self.character_image_path = None
 
     def _update_animation(self, now: int):
         if not self.animating:
@@ -567,19 +628,25 @@ class PygameVNApp:
         y += 42
 
         progress = "-"
-        if self.current_id.isdigit() and self.total_linear > 0:
-            idx = int(self.current_id)
+        if self.total_linear > 0:
+            idx = self._current_linear_index()
             pct = int((idx + 1) / max(1, self.total_linear) * 100)
             progress = f"{idx + 1}/{self.total_linear} ({pct}%)"
 
         p_text = self.font_small.render(progress, True, FG_HINT)
         self.screen.blit(p_text, (x, y))
         y += 30
-        seg_text = self.font_small.render(f"当前段落: {self.current_id}", True, FG_HINT)
+        seg = self._current_segment()
+        seg_id = str(seg.get("id", "-")) if seg else "-"
+        seg_text = self.font_small.render(f"当前段落: {seg_id}", True, FG_HINT)
         self.screen.blit(seg_text, (x, y))
+        y += 30
+        sb_text = self.font_small.render(f"当前分镜: {self.current_storyboard_title}", True, FG_HINT)
+        self.screen.blit(sb_text, (x, y))
 
     def _draw_right_sidebar(self, right_rect: pygame.Rect):
-        title = self.font_h2.render("人物", True, FG_MAIN)
+        is_narration = self.current_speaker == "旁白"
+        title = self.font_h2.render("旁白" if is_narration else "人物", True, FG_DIM if is_narration else FG_MAIN)
         self.screen.blit(title, (right_rect.left + 18, right_rect.top + 18))
 
         max_pw = right_rect.width - 28
@@ -597,10 +664,15 @@ class PygameVNApp:
             pygame.draw.rect(self.screen, (30, 30, 52), frame, border_radius=10)
             self.screen.blit(portrait, (frame.left + frame_pad, frame.top + frame_pad))
             portrait_bottom = frame.bottom + 14
-        else:
+        elif not is_narration:
             miss = self.font_small.render("未配置人物立绘", True, FG_DIM)
             self.screen.blit(miss, (right_rect.left + (right_rect.width - miss.get_width()) // 2, right_rect.top + 104))
             portrait_bottom = right_rect.top + 150
+
+        if self.current_speaker and not is_narration:
+            speaker = self.font_small.render(f"说话人: {self.current_speaker}", True, FG_HINT)
+            self.screen.blit(speaker, (right_rect.left + 18, portrait_bottom))
+            portrait_bottom += 32
 
         ops_title = self.font_h2.render("操作", True, FG_MAIN)
         self.screen.blit(ops_title, (right_rect.left + 18, portrait_bottom))
@@ -625,7 +697,7 @@ class PygameVNApp:
         else:
             txt = self.anim_target_text[: self.anim_char_index]
 
-        color = SHAKE_RED if self.anim_effect == "shake" else FG_MAIN
+        color = SHAKE_RED if self.anim_effect == "shake" else (FG_DIM if self.current_speaker == "旁白" else FG_MAIN)
         offset_x = shake_x if self.anim_effect == "shake" and self.animating else 0
         offset_y = shake_y if self.anim_effect == "shake" and self.animating else 0
         self._draw_outlined_multiline(txt, self.font_main, color, text_rect, offset_x, offset_y)
@@ -699,6 +771,46 @@ class PygameVNApp:
                     ends = valid_points + [max_line]
                     return [self._normalize_text("\n".join(raw_lines[:end])) for end in ends]
         return [self._normalize_text(text)]
+
+    def _current_segment(self) -> dict | None:
+        if not self.storyboards:
+            return None
+        if not (0 <= self.current_storyboard_idx < len(self.storyboards)):
+            return None
+        scripts = self.storyboards[self.current_storyboard_idx].get("scripts", [])
+        if not isinstance(scripts, list):
+            return None
+        if not (0 <= self.current_script_idx < len(scripts)):
+            return None
+        seg = scripts[self.current_script_idx]
+        return seg if isinstance(seg, dict) else None
+
+    def _move_to_next_segment(self) -> bool:
+        if not self.storyboards:
+            return False
+        scripts = self.storyboards[self.current_storyboard_idx].get("scripts", [])
+        if self.current_script_idx + 1 < len(scripts):
+            self.current_script_idx += 1
+            return True
+
+        if self.current_storyboard_idx + 1 < len(self.storyboards):
+            self.current_storyboard_idx += 1
+            self.current_script_idx = 0
+            return True
+
+        return False
+
+    def _current_linear_index(self) -> int:
+        idx = 0
+        for sb_i, sb in enumerate(self.storyboards):
+            scripts = sb.get("scripts", [])
+            if sb_i < self.current_storyboard_idx:
+                idx += len(scripts)
+                continue
+            if sb_i == self.current_storyboard_idx:
+                idx += min(self.current_script_idx, max(0, len(scripts) - 1))
+                break
+        return idx
 
     def _extract_bg_effects(self, bg: dict) -> set[str]:
         effects_raw = bg.get("effects", [])
