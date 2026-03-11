@@ -27,6 +27,13 @@ class RefinementResult:
     final_report: QualityReport
 
 
+def _has_narration_ratio_issue(report: QualityReport) -> bool:
+    return any(
+        issue.code in {"SB_NARRATION_RATIO_LOW", "GLOBAL_NARRATION_RATIO_LOW"}
+        for issue in report.issues
+    )
+
+
 def refine_script_until_pass(
     script_data: dict[str, Any],
     novel_text: str,
@@ -49,7 +56,7 @@ def refine_script_until_pass(
             )
         )
 
-        if report.passed and report.stats.narration_ratio >= min_narration_ratio:
+        if report.passed and report.stats.narration_ratio >= min_narration_ratio and not _has_narration_ratio_issue(report):
             return RefinementResult(current, history, report)
 
         # 单轮策略：先补旁白，再结构修复。
