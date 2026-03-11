@@ -302,6 +302,10 @@ python scripts/bootstrap_env.py
 ## 9. 最近变更记录
 
 ### 9.1 最近 12 条
+- 2026-03-11：阅读器正文渲染改为统一默认文字颜色（不再按旁白/角色或 shake 切换颜色）；当单次分镜文本超出可视高度时，支持滚轮滚动并显示正文滚动条。
+- 2026-03-11：回归样本 `渡口回灯` 暴露分镜规划器跨题材错配，`engine/storyboard_planner.py` 已从旧关键词硬编码改为“章节标题优先 + 场景语义标签”生成，默认输出通用背景路径 `assets/scene_<idx>_<tags>.png`。
+- 2026-03-11：修复 `engine/script_refiner.py` 提前停止缺陷：原逻辑在仍存在 `SB_NARRATION_RATIO_LOW` 时可能提前判定通过；现要求“无 error 且无旁白占比告警（全局+分镜）”后才停止，并新增对应单测。
+- 2026-03-11：完成 `渡口回灯` 全流程回归（模块1/2 + 模块3烟测）：本地门禁 `scripts=71`、`narration_ratio=0.507`、`issues=0`，混元复评 `overall_score=7.4`、`delivery_gate=pass`。
 - 2026-03-11：将模块2闭环标准正式固化到 skills：统一为“初稿生成 -> 本地门禁 -> 模型复评 -> 定向改写”，默认最多 3 轮；同时统一 AI 复评为 0-10 分制，并新增 `delivery_gate` / `pass_with_polish` 口径，避免旧 70 分门槛误用。
 - 2026-03-11：新增 `engine/storyboard_planner.py` 与 `tools/plan_storyboards_from_novel.py`，支持按小说段落语义自动切片生成分镜草案；新增 `engine/script_refiner.py` 与 `tools/auto_refine_script.py`，支持按质量门禁执行最多3轮自动修复。
 - 2026-03-11：新增模块2质量内核 `engine/script_quality.py`，提供结构检查、旁白占比检查、文本分句修复、`asset_manifest` 重建能力；新增 `tools/check_script_quality.py` 与 `tools/enrich_script_narration.py` 可执行门禁工具，并用于实测修复 `scripts/盲人侦探/script.json`（旁白占比提升至 0.46）。
