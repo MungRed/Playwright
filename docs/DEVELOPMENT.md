@@ -9,25 +9,58 @@
 
 ## 2. 项目定位
 
-本项目是基于 `Python + pygame` 的本地**剧本阅读器**，核心能力：
-- 加载 `scripts/<script_name>/script.json` 剧本
-- 支持线性阅读
-- 支持多种文字演出效果
-- 提供左侧进度栏（进度与当前段落）
-- 支持段落背景图（渐变/震动）与右侧人物立绘展示
+本项目主产品是一个 AI 创作流水线，核心目标是生成可消费的剧本资产：
+
+- 模块1：完整小说生成（`generate-novel`）
+- 模块2：剧本 JSON 生成（`generate-script`）
+- 模块3：图片资产生成（`generate-scene-assets`）
+
+`Python + pygame` 阅读器是附带产品，职责是播放与验收流水线产出的 `script.json`，不作为项目主定位。
+
+## 2.2 模块2质量内核（v2）
+
+为避免“剧本可生成但质量不可控”，项目新增本地可执行质量内核：
+
+- 代码：`engine/script_quality.py`
+- 检查工具：`tools/check_script_quality.py`
+- 增强工具：`tools/enrich_script_narration.py`
+
+默认质量门禁：
+1. `storyboards -> scripts` 结构完整
+2. 段落 id 全局唯一
+3. 旁白段 `character_image=null`
+4. `typewriter` 段 `speed=55`
+5. 单条文本长度 <= 80
+6. 旁白占比 >= 0.45（全局 + 分镜）
+7. 精确重复段落数 = 0
+
+模块2固定闭环：
+1. 初稿生成
+2. 本地门禁：`tools/check_script_quality.py --min-narration-ratio 0.45`
+3. 本地修复：`tools/enrich_script_narration.py` / `tools/auto_refine_script.py`
+4. 模型复评：`review-script`
+5. 定向改写后重跑，最多 3 轮
+
+统一停止条件：
+- 模型原始 `quality_gate=pass`；或
+- 本地门禁通过，且模型复评满足：`overall_score >= 6.5`、`story_completeness >= 7`、`visual_novel_adaptation >= 7`、其余核心维度 >= 6
 
 ## 2.1 AI 创作最小协议（必读）
 
 为减少上下文歧义，agent 在剧本创作任务中默认遵循以下最小协议：
 
-1. 文本生成只走混元生文 API（阶段1/2）。
+1. 文本生成只走混元生文 API（模块1/2）。
 2. `shared` 是唯一共享数据源；写回必须保留其他字段。
 3. `display_break_lines` 是可选节奏手法；使用时必须为字符串数组且 `text=""`。
 4. `effect` 是可选演出手法；若 `effect=typewriter`，`speed=55`。
-5. 阶段2必须执行双门禁后，才可进阶段3/4：
-   - **结构门禁**：`python scripts/normalize_script_break_lines.py scripts/<script_name>/script.json --check`
-   - **AI质量门禁**：`python scripts/quality_gate_ai.py scripts/<script_name>/script.json --check`
-6. 禁止读取其他剧本正文作为创作素材。
+5. 模块2必须执行双门禁后，才可进模块3：
+	- **本地门禁**：`tools/check_script_quality.py --min-narration-ratio 0.45`
+	- **AI质量门禁**：`review-script` 输出 0-10 分制复评，并据此计算 `delivery_gate`
+6. 模块2默认按“一个分镜一次调用”生成 `storyboards`，禁止单次输出全量分镜内容。
+7. 模块3生图顺序固定为：先文生图生成人物三视图设定图，再图生图生成竖版剧情立绘。
+8. 阅读器右侧 `character_image` 必须使用竖版立绘（推荐 `720x1280`），不可直接使用三视图设定图。
+9. 禁止读取其他剧本正文作为创作素材。
+10. 默认使用简体中文（zh-CN）输出沟通、结论与文档内容。
 
 ---
 
@@ -35,15 +68,18 @@
 
 - `main.py`：程序入口，启动 pygame 应用
 - `engine/pygame_app.py`：主菜单与阅读主循环（事件、渲染、状态机）
-- `.mcp/image_gen_server.py`：MCP 服务，封装腾讯混元生文（ChatCompletions）与生图（TextToImageLite / SubmitTextToImageJob）
+- `engine/storyboard_planner.py`：小说段落语义切片与分镜草案生成
+- `engine/script_refiner.py`：模块2质量闭环执行器（多轮修复）
+- `.mcp/hunyuan_backend.py`：混元 MCP 公共后端，实现生文/生图核心逻辑
+- `.mcp/image_gen_server.py`：生图 MCP 入口，仅暴露 `generate_image`
+- `.mcp/text_gen_server.py`：生文 MCP 入口，仅暴露 `generate_text`
+- `tools/plan_storyboards_from_novel.py`：分镜草案命令行入口
+- `tools/auto_refine_script.py`：剧本自动多轮修复命令行入口
 - `scripts/<script_name>/script.json`：剧本数据（视觉小说线性叙事）
 - `scripts/<script_name>/assets/*`：该剧本的背景图与人物图资源
 - `scripts/<script_name>/review.json`：剧本评分报告（可选，由 `review-script` skill 生成）
-- `scripts/bootstrap_env.py`：本地环境检查与初始化
-- `scripts/normalize_script_break_lines.py`：剧本分步字段规范化工具（修复分步结构并校验 `typewriter` 速度基线）
-- `scripts/quality_score_by_ai.py`：调用混元API对剧本进行AI评分（通过 COS 上传脚本文件，6维度评分 + 改进建议；具体规范详见 PITFALLS.md § 4.4）
-- `scripts/quality_gate_ai.py`：AI质量门禁工具（基于AI评分 >= 70 判定通过）  
-- `scripts/upload_to_cos.py`：文件上传到腾讯COS工具（支持质量评估时上传脚本、生草稿等大文件）
+- `.github/agents/doc-first-script-pipeline.agent.md`：剧本流水线编排 agent（文档先行、模块解耦、禁止新增专用 Python 编排脚本）
+- `third_party/anthropics-skills/`：本地安装的 Anthropic skills 示例仓库镜像，仅用于参考与复用技能实现，默认不纳入主项目版本控制
 
 ---
 
@@ -52,19 +88,35 @@
 ### 4.1 初始化环境（推荐）
 
 ```bash
-python scripts/bootstrap_env.py
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r .mcp/requirements.txt
 ```
 
-该脚本会自动：
-- 创建虚拟环境 `.venv`
-- 安装所有依赖（包括 pygame）
-- 验证环境配置
-
-仅检查：
+运行阅读器：
 
 ```bash
-python scripts/bootstrap_env.py --check-only
+.venv\Scripts\python.exe main.py
 ```
+
+### 4.2 文档先行流水线（Agent 编排）
+
+剧本创作流程由 agent 编排执行，不新增专用 Python 流程脚本。
+
+执行顺序：
+- 模块1：AI 生成完整小说
+- 模块2：AI 根据完整小说生成剧本
+- 模块3：AI 根据剧本内分镜生成图片资产（人设图/背景图/立绘）
+
+执行约束：
+- 每模块执行前先补全模块文档（输入、输出、验收标准）。
+- 优先调用已有 skills，避免重复实现编排逻辑。
+- 模块完成后同步更新 `docs/DEVELOPMENT.md` 与剧本目录文档。
+- 三个模块必须都支持独立执行，并具备完整输入/输出与验收口径。
+
+三主模块 skill 对应：
+- 模块1：`generate-novel`
+- 模块2：`generate-script`
+- 模块3：`generate-scene-assets`
 
 ---
 
@@ -77,12 +129,15 @@ python scripts/bootstrap_env.py --check-only
 - 剧本中的 `background.image` / `character_image` 建议使用相对路径：`assets/<filename>.png`。
 - 人物设定图（`char_ref_*`）用于风格与角色一致性参考，不直接绑定到 `character_image`。
 - 剧本绑定的人物图应使用剧情立绘（如 `char_<name>_<mood>.png`）。
+- 人物生产两段式约束：先生成 `char_ref_<name>_v1.png` 三视图设定图，再以该图做 `reference_images` 图生图生成剧情立绘。
+- 立绘必须为竖版资源（推荐 `720x1280`），用于阅读器右侧人物栏显示。
 - 生图服务会在剧本资源目录维护 `scripts/<script_name>/assets/_style_contract.json` 作为风格契约缓存（style/negative 锚点）。
 - 文本生产新增草稿落盘约定：阶段1/2 生文原文先保存到 `scripts/<script_name>/drafts/`，再由 agent 转换为 `script.json`。
-- 推荐草稿文件：`planning_draft.md`（规划）、`novel_draft.md`（正文）。
-- 一致性约束：阶段2生成 `novel_draft.md` 时，生文请求必须注入 `planning_draft.md` 内容（优先全文）作为上下文，避免前后文设定漂移。
-- 文风约束：阶段2 `novel_draft` 必须包含人物描写、环境描写与心理描写，并与对话混合；禁止全篇纯对白。
-- 阶段2收尾门禁：文本转换完成后必须执行 `python scripts/normalize_script_break_lines.py scripts/<script_name>/script.json`，并使用 `--check` 校验 `changed_segments=0` 后方可进入阶段3/4。
+- 推荐草稿文件：`planning_draft.md`（规划）、`novel_full.md`（正文）。
+- 一致性约束：阶段1生成 `novel_full.md` 时，生文请求必须注入 `planning_draft.md` 内容（优先全文）作为上下文，避免前后文设定漂移。
+- 文风约束：阶段1 `novel_full` 必须包含人物描写、环境描写与心理描写，并与对话混合；禁止全篇纯对白。
+- 模块2收尾门禁：文本转换完成后必须由 agent 执行结构检查，并确认 `display_break_lines` 与 `effect/speed` 协议满足约束后方可进入模块3。
+- 模块2收尾时必须同时写回：`shared.pipeline_state.quality_round`、`quality_gate`、`quality_scores`、`review_gate`（若存在）。
 - 剧本评分报告：`scripts/<script_name>/review.json` 由 `review-script` skill 生成，包含多维度评分、优缺点分析与改进建议；不影响剧本运行。
 ### 5.1 线性格式
 
@@ -247,6 +302,21 @@ python scripts/bootstrap_env.py
 ## 9. 最近变更记录
 
 ### 9.1 最近 12 条
+- 2026-03-11：将模块2闭环标准正式固化到 skills：统一为“初稿生成 -> 本地门禁 -> 模型复评 -> 定向改写”，默认最多 3 轮；同时统一 AI 复评为 0-10 分制，并新增 `delivery_gate` / `pass_with_polish` 口径，避免旧 70 分门槛误用。
+- 2026-03-11：新增 `engine/storyboard_planner.py` 与 `tools/plan_storyboards_from_novel.py`，支持按小说段落语义自动切片生成分镜草案；新增 `engine/script_refiner.py` 与 `tools/auto_refine_script.py`，支持按质量门禁执行最多3轮自动修复。
+- 2026-03-11：新增模块2质量内核 `engine/script_quality.py`，提供结构检查、旁白占比检查、文本分句修复、`asset_manifest` 重建能力；新增 `tools/check_script_quality.py` 与 `tools/enrich_script_narration.py` 可执行门禁工具，并用于实测修复 `scripts/盲人侦探/script.json`（旁白占比提升至 0.46）。
+- 2026-03-11：模块2生成策略固定为“一个分镜一次调用混元生文 API”，用于降低长输出超时概率；模块3固定为“先三视图设定图，再图生图竖版立绘”并绑定 `character_image`。
+- 2026-03-11：模块3定义调整为“图片资产生成模块”：直接消费 `script.json` 内 `storyboards` 生成人设图/背景图/立绘，不再生成 `storyboard.json`。
+- 2026-03-11：阅读器切换为仅支持 `storyboards -> scripts` 协议并按“点击推进”在分镜内/分镜间移动；不再兼容旧 `segments` 结构读取。
+- 2026-03-11：按三模块编排执行新剧本 `盲人侦探`（模块1/2），产出 `drafts/planning_draft.*`、`drafts/novel_full.*`、`script.json` 与 `review.json`；模块2 AI 质量门禁评分 24（`rewrite_needed`），按约束中断模块3。
+- 2026-03-11：编排实操中补充门禁策略：当模块2评分门禁失败时，`shared.pipeline_state.stage` 统一置为 `module2_gate_failed`，并同步写回 `quality_scores` 摘要用于重写轮次追踪。
+- 2026-03-11：模块1口径从“小说草稿”升级为“完整小说”，统一产物路径为 `scripts/<script_name>/drafts/novel_full.md`，模块2同步改为基于完整小说生成剧本。
+- 2026-03-11：拆分 MCP 单体服务：新增 `.mcp/hunyuan_backend.py` 公共后端，并将 `.mcp/image_gen_server.py` 与 `.mcp/text_gen_server.py` 拆分为生图/生文独立入口；同步更新 `.mcp.json` 与 `.vscode/mcp*.jsonc`。
+- 2026-03-11：项目定位重构为“AI 小说/剧本/分镜流水线主产品，pygame 阅读器附带产品”，并同步重排 README 顶部结构。
+- 2026-03-11：完成流水线入口自测样例 `scripts/pipeline_smoke_20260311/`，产出 `novel_draft`、`script.json`、`storyboard.json` 与校验报告。
+- 2026-03-11：完成三模块硬解耦：移除 `create-script` 双模式，新增 `generate-novel`（模块1）与 `generate-script`（模块2）；`orchestrate-script-production` 改为仅串联三主模块 skill。
+- 2026-03-11：移除专用 Python 流程脚本，剧本生产改为 agent-first 编排；新增 `.github/agents/doc-first-script-pipeline.agent.md` 统一文档先行与模块解耦约束。
+- 2026-03-11：新增 `third_party/anthropics-skills/` 本地镜像目录，用于安装 `anthropics/skills` 仓库并通过 `.gitignore` 排除第三方内容。
 - 2026-03-04：双门禁质量闭环升级（定量→AI质量门）：将质量评估从定量指标改为混元AI评分，6维度评分（故事完整性/人物塑造/文笔质量/情感代入/创意特色/节奏控制），AI评分 >= 70 为通过。
 - 2026-03-04：建立“本地体检→模型复评→定向重写”固定迭代顺序，补充四类常见质量问题的可执行改写模板。
 - 2026-03-04：完成“文档降噪重构”：`create-script` 与 `orchestrate-script-production` 重写为精简单一规范，减少重复与冲突描述。
@@ -255,12 +325,6 @@ python scripts/bootstrap_env.py
 - 2026-03-04：修复 `normalize_script_break_lines.py` 迁移逻辑：旧断点与 `text` 并存时优先保留 `text`。
 - 2026-03-04：新增 `normalize_script_break_lines.py`，作为阶段2写回后的结构门禁。
 - 2026-03-04：Git 忽略策略调整为忽略 `scripts/*/`（含 `scripts/shared`），降低大文件入库风险。
-- 2026-03-03：落地质量闭环（评审→定向重写→复评，最多2轮）并记录 `quality_*` 状态。
-- 2026-03-03：新增 `review-script` skill，统一评审输出到 `review.json`。
-- 2026-03-03：统一 `display_break_lines` 为字符串数组协议，清理旧断点格式兼容差异。
-- 2026-03-03：生文链路升级为会话+文件上下文模式，稳定长篇续写。
-- 2026-03-03：明确混元文件限制：`enable_deep_read=false`、`context_files` 仅 `.txt`。
-- 2026-03-03：形成阶段2审稿分支标准口径（`review_after_stage2` + `review_gate`）。
 
 ### 9.2 长期里程碑
 

@@ -25,15 +25,18 @@
 
 为避免 agent 因历史补丁语句产生误解，剧本生产默认按以下基线执行：
 
-1. 阶段1/2 文本必须调用生文 API（禁止离线直写全文）。
+1. 模块1/2 文本必须调用生文 API（禁止离线直写全文）。
 2. `shared` 是唯一共享数据源；写回必须保留非目标字段。
 3. `display_break_lines` 为可选节奏手法；使用时必须字符串数组且 `text=""`。
 4. `effect` 为可选演出手法；若 `effect=typewriter`，`speed=55`。
-5. 阶段2结束必须通过双门禁：
-   - 结构门禁：`python scripts/normalize_script_break_lines.py scripts/<name>/script.json --check`
-   - 质量门禁：`python scripts/quality_audit.py scripts/<name>/script.json --check`
-6. 禁止读取其他剧本正文作为创作素材。
-7. 质量修复顺序固定为：本地体检 → 定向改写 → 模型复评（最多2轮）。
+5. 模块2结束必须通过双门禁：
+    - 本地门禁：`python tools/check_script_quality.py scripts/<name>/script.json --min-narration-ratio 0.45 --json`
+    - 模型门禁：调用 `review-script`，按 0-10 分制和 `delivery_gate` 判定
+6. 阶段2默认按“一个分镜一次生文调用”执行，禁止单次请求生成全量分镜。
+7. 阶段3人物图必须两段式：先文生图三视图设定图，再图生图生成竖版剧情立绘。
+8. 阅读器右侧 `character_image` 必须回写竖版立绘，不可直接使用三视图设定图。
+9. 禁止读取其他剧本正文作为创作素材。
+10. 质量修复顺序固定为：本地体检 → 本地修复 → 模型复评 → 定向改写（最多3轮）。
 调用生图 API 时使用短路径 `assets/char_ref_小益_v1.png` 导致 `reference_images` 无法访问。
 
 **原因**:
@@ -119,6 +122,10 @@ result = mcp__playwright-image-gen__generate_text(
 ```
 
 **适用场景**: 所有调用混元生文 API 且需要文件上下文的场景。
+
+**补充**:
+- 不要依赖默认值，务必显式传 `enable_deep_read=false`。
+- 若开启 `context_files` 时报 `InvalidParameter`，先检查是否隐式启用了深度阅读。
 
 ---
 
@@ -283,6 +290,56 @@ for task in tasks:
 
 ---
 
+### 2.8 生文大上下文易超时，需保留降级模型与重试策略
+
+**问题**:
+模块2在上传完整 `novel_full.txt` 后，`hunyuan-pro` 多次出现 `Read timed out`，导致剧本转换中断。
+
+**原因**:
+上下文文件较大时，请求链路和生成耗时都上升，默认超时窗口下容易失败。
+
+**正确做法**:
+```python
+# 1) 先按主模型请求
+resp = generate_text(model="hunyuan-pro", context_files=[".../novel_full.txt"], retry_max=2)
+
+# 2) 若连续超时，降级到轻量模型继续产出
+if not resp["success"]:
+    resp = generate_text(model="hunyuan-lite", context_files=[".../novel_full.txt"], retry_max=2)
+```
+
+**适用场景**: 阶段1/2 长文本生成或转换，且 `context_files` 使用完整正文时。
+
+---
+
+### 2.9 模型复评分制已切换为 0-10，禁止继续使用旧的 70 分门槛
+
+**问题**:
+模块2复评已经输出 `overall_score=6.6`、各维度 0-10 分，但编排层仍按“>=70 分通过”的旧口径判断，导致 agent 无法稳定停止迭代。
+
+**原因**:
+历史 AI 评分工具使用过 0-100 分制，后续 `review-script` 改为直接输出 0-10 分制 JSON，文档和 skill 没有同步清理旧阈值。
+
+**正确做法**:
+```text
+# 新口径
+- quality_gate: 模型原始结论
+- delivery_gate: 编排统一结论
+
+若同时满足：
+overall_score >= 6.5
+story_completeness >= 7
+visual_novel_adaptation >= 7
+其余核心维度 >= 6
+且本地门禁通过
+
+则可判定为 pass_with_polish，允许进入模块3。
+```
+
+**适用场景**: `generate-script`、`review-script`、`orchestrate-script-production` 的模块2闭环。
+
+---
+
 ## 3. JSON 与数据结构
 
 ### 3.1 JSON 写入必须使用 json.dumps，禁止手工拼接
@@ -332,7 +389,7 @@ with open("script.json", "w", encoding="utf-8") as f:
 }
 ```
 
-**适用场景**: `create-script` 和 `configure-script-presentation` 生成段落配置时。
+**适用场景**: `generate-script` 和 `configure-script-presentation` 生成段落配置时。
 
 **补充（2026-03-04）**:
 - 旧脚本常出现 `"display_break_lines": [1]`（整数断点旧格式），会导致节奏控制退化。
@@ -358,7 +415,7 @@ segment["text"] = ""
 segment["display_break_lines"] = ["第一行", "第二行"]
 ```
 
-**适用场景**: `create-script` 生成段落时。
+**适用场景**: `generate-script` 生成段落时。
 
 ---
 
@@ -376,7 +433,7 @@ python scripts/normalize_script_break_lines.py scripts/<script_name>/script.json
 python scripts/normalize_script_break_lines.py scripts/<script_name>/script.json --check
 ```
 
-**适用场景**: `orchestrate-script-production` 阶段2结束后，进入阶段3/4之前。
+**适用场景**: `orchestrate-script-production` 模块2结束后，进入模块3之前。
 
 ---
 
@@ -458,6 +515,30 @@ if segment.get("effect") == "typewriter":
 
 ---
 
+### 3.9 模型返回 JSON 常见“协议近似正确”，落盘前必须二次校正
+
+**问题**:
+模型可能返回“看起来像 JSON”但不满足协议细节，例如：
+- `next` 链不完整或提前 `null`
+- 末段空文本
+- 夹带未约定字段
+
+**原因**:
+大模型会优先满足语义要求，但不保证百分百满足严格结构约束。
+
+**正确做法**:
+```python
+# 落盘前执行协议修复
+# 1) 校正 id 连续性和 next 链
+# 2) 移除未约定字段
+# 3) 补齐末段有效 text
+# 4) 再执行门禁校验
+```
+
+**适用场景**: `generate-script` 与 `orchestrate-script-production` 在写回 `script.json` 前。
+
+---
+
 ## 4. 生文 API 使用
 
 ### 4.1 阶段2 必须注入 planning_draft 全文，且落盘时须同时保存 .txt 副本
@@ -497,7 +578,7 @@ result = mcp_playwright-im_generate_text(
 )
 ```
 
-**适用场景**: `create-script` 阶段1落盘、阶段2 所有生文调用。
+**适用场景**: `generate-novel` 模块1落盘、`generate-script` 模块2 所有生文调用。
 
 ---
 
@@ -528,7 +609,7 @@ result2 = mcp__playwright-image-gen__generate_text(
 )
 ```
 
-**适用场景**: `create-script` 分批生成长篇正文时。
+**适用场景**: `generate-novel` 分批生成长篇正文时。
 
 ---
 
@@ -585,7 +666,7 @@ result2 = mcp__playwright-image-gen__generate_text(
 )
 ```
 
-**适用场景**: `create-script` 长篇正文续写超出消息长度限制时。
+**适用场景**: `generate-novel` 长篇正文续写超出消息长度限制时。
 
 ---
 
@@ -823,6 +904,29 @@ EOF
 ```
 
 **适用场景**: 需要多行逻辑、循环、条件判断的场景。
+
+---
+
+### 6.3 剧本生产流程编排禁止新增专用 Python 脚本
+
+**问题**:
+将“小说→剧本→资产”流程实现为新的 Python 编排脚本，导致与 agent/skill 体系双轨并存、维护成本上升。
+
+**原因**:
+项目定位为 agent-first；流程控制应由 agent 通过文档约束与 skill 调用完成，不应再复制一套脚本编排层。
+
+**正确做法**:
+```text
+# ❌ 错误：新增脚本编排入口
+python scripts/pipeline_runner.py <script_name> all
+
+# ✅ 正确：由 agent 按阶段执行
+1) 先补阶段文档（输入/输出/验收）
+2) 调用 generate-novel / generate-script / generate-scene-assets（可选：generate-character-images / attach-script-assets）
+3) 完成后回写 DEVELOPMENT.md 与阶段文档
+```
+
+**适用场景**: 任何涉及剧本生产流水线重构、编排或阶段拆分的任务。
 
 ---
 
@@ -1080,5 +1184,5 @@ powershell -ExecutionPolicy Bypass -File .venv\Scripts\Activate.ps1
 
 ---
 
-**最后更新**: 2026-03-04
+**最后更新**: 2026-03-11
 **文档版本**: v1.0
