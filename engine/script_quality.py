@@ -121,7 +121,70 @@ def _normalize_segment_text(speaker: str, text: str) -> str:
     return out
 
 
-def analyze_script_quality(data: dict[str, Any], min_narration_ratio: float = 0.40) -> QualityReport:
+def _calculate_similarity(text1: str, text2: str) -> float:
+    """计算两个文本的相似度（简单的字符重叠率）"""
+    if not text1 or not text2:
+        return 0.0
+
+    # 移除空格和标点进行比较
+    clean1 = re.sub(r'[\s，。！？：；、""''（）]', '', text1)
+    clean2 = re.sub(r'[\s，。！？：；、""''（）]', '', text2)
+
+    if not clean1 or not clean2:
+        return 0.0
+
+    # 计算最长公共子序列长度
+    len1, len2 = len(clean1), len(clean2)
+    if len1 == 0 or len2 == 0:
+        return 0.0
+
+    # 使用滑动窗口计算重叠字符数
+    overlap = 0
+    window_size = min(len1, len2, 20)  # 限制窗口大小避免性能问题
+
+    for i in range(len1 - window_size + 1):
+        substr = clean1[i:i+window_size]
+        if substr in clean2:
+            overlap += window_size
+
+    # 相似度 = 重叠字符数 / 平均长度
+    avg_len = (len1 + len2) / 2
+    similarity = overlap / avg_len if avg_len > 0 else 0.0
+
+    return min(similarity, 1.0)  # 限制在 0.0-1.0 之间
+
+
+def _check_duplicate_text(data: dict[str, Any], threshold: float = 0.85) -> list[QualityIssue]:
+    """检测重复或高度相似的段落"""
+    issues: list[QualityIssue] = []
+    texts: list[tuple[str, str]] = []  # (text, location)
+
+    for sb_idx, sb in enumerate(data.get("storyboards", [])):
+        for sc_idx, sc in enumerate(sb.get("scripts", [])):
+            text = sc.get("text", "").strip()
+            if not text or len(text) < 10:  # 跳过过短文本
+                continue
+
+            location = f"storyboards[{sb_idx}].scripts[{sc_idx}]"
+
+            # 与已有文本比较相似度
+            for prev_text, prev_loc in texts:
+                similarity = _calculate_similarity(text, prev_text)
+                if similarity >= threshold:
+                    issues.append(QualityIssue(
+                        level="error",
+                        code="DUPLICATE_TEXT",
+                        message=f"文本与 {prev_loc} 高度相似（{similarity:.1%}）",
+                        location=location
+                    ))
+                    break  # 找到一个重复就够了，不需要继续比较
+
+            texts.append((text, location))
+
+    return issues
+
+
+def analyze_script_quality(data: dict[str, Any], min_narration_ratio: float = 0.50) -> QualityReport:
     issues: list[QualityIssue] = []
 
     storyboards = data.get("storyboards")
@@ -155,7 +218,7 @@ def analyze_script_quality(data: dict[str, Any], min_narration_ratio: float = 0.
         sb_narr = 0
         first_speaker = str(scripts[0].get("speaker", "")).strip() if scripts else ""
         if first_speaker != NARRATION_SPEAKER:
-            issues.append(QualityIssue("warn", "SB_NOT_START_WITH_NARRATION", "分镜未以旁白开头", sb_loc + ".scripts[0]"))
+            issues.append(QualityIssue("error", "SB_NOT_START_WITH_NARRATION", "分镜未以旁白开头", sb_loc + ".scripts[0]"))
 
         for sc_index, sc in enumerate(scripts):
             sc_loc = f"{sb_loc}.scripts[{sc_index}]"
@@ -174,7 +237,9 @@ def analyze_script_quality(data: dict[str, Any], min_narration_ratio: float = 0.
             if not speaker:
                 issues.append(QualityIssue("error", "SPEAKER_MISSING", "段落缺少 speaker", sc_loc))
 
-            if len(text) > 80:
+            if len(text) > 100:
+                issues.append(QualityIssue("error", "TEXT_TOO_LONG", f"text 长度 {len(text)} > 100（严重超标）", sc_loc))
+            elif len(text) > 80:
                 issues.append(QualityIssue("warn", "TEXT_TOO_LONG", f"text 长度 {len(text)} > 80", sc_loc))
 
             if CHAPTER_HEADING_LINE_RE.match(text.strip()):
@@ -199,7 +264,17 @@ def analyze_script_quality(data: dict[str, Any], min_narration_ratio: float = 0.
 
         sb_ratio = (sb_narr / sb_total) if sb_total else 0.0
         narr += sb_narr
-        if sb_ratio < min_narration_ratio:
+        if sb_ratio < 0.45:
+            # 严重不达标（<45%）升级为 error
+            issues.append(
+                QualityIssue(
+                    "error",
+                    "SB_NARRATION_RATIO_LOW",
+                    f"分镜旁白占比 {sb_ratio:.2f} < 0.45（严重不足）",
+                    sb_loc,
+                )
+            )
+        elif sb_ratio < min_narration_ratio:
             issues.append(
                 QualityIssue(
                     "warn",
@@ -210,7 +285,17 @@ def analyze_script_quality(data: dict[str, Any], min_narration_ratio: float = 0.
             )
 
     ratio = (narr / total) if total else 0.0
-    if ratio < min_narration_ratio:
+    if ratio < 0.45:
+        # 严重不达标（<45%）升级为 error
+        issues.append(
+            QualityIssue(
+                "error",
+                "GLOBAL_NARRATION_RATIO_LOW",
+                f"全局旁白占比 {ratio:.2f} < 0.45（严重不足）",
+                "storyboards",
+            )
+        )
+    elif ratio < min_narration_ratio:
         issues.append(
             QualityIssue(
                 "warn",
@@ -219,6 +304,10 @@ def analyze_script_quality(data: dict[str, Any], min_narration_ratio: float = 0.
                 "storyboards",
             )
         )
+
+    # 检测重复文本
+    duplicate_issues = _check_duplicate_text(data, threshold=0.85)
+    issues.extend(duplicate_issues)
 
     passed = not any(i.level == "error" for i in issues)
     stats = QualityStats(len(storyboards), total, narr, ratio, max_text_len)
@@ -243,24 +332,98 @@ def _required_insertions(current_total: int, current_narr: int, target_ratio: fl
     return max(0, int(math.ceil(need)))
 
 
+def _extract_keywords(text: str) -> list[str]:
+    """从文本中提取关键词（简单实现）
+
+    Args:
+        text: 输入文本（如分镜标题"第一章 雨夜回访"）
+
+    Returns:
+        关键词列表（如["雨", "夜", "回访"]）
+    """
+    # 移除常见标题前缀
+    text = re.sub(r"^第[一二三四五六七八九十百千0-9]+章\s*", "", text).strip()
+
+    # 简单分词：按字符切分（适用于中文）
+    # 过滤掉单字且为常见虚词的字符
+    stop_words = set("的了在是有和与及之为以")
+    keywords = [ch for ch in text if ch not in stop_words and ch.strip()]
+
+    return keywords[:10]  # 最多返回10个关键词
+
+
+def _filter_candidates_by_theme(
+    candidates: deque[str],
+    storyboard_title: str,
+    max_relevant: int = 50,
+) -> deque[str]:
+    """根据分镜主题筛选相关旁白候选
+
+    Args:
+        candidates: 全部旁白候选池
+        storyboard_title: 分镜标题（如"第一章 雨夜回访"）
+        max_relevant: 最多保留多少个相关候选
+
+    Returns:
+        筛选后的候选池（相关候选在前，其他候选在后）
+    """
+    if not storyboard_title:
+        return candidates
+
+    # 提取主题关键词
+    keywords = _extract_keywords(storyboard_title)
+    if not keywords:
+        return candidates
+
+    # 将候选分为相关和无关两类
+    relevant: deque[str] = deque()
+    others: deque[str] = deque()
+
+    for text in candidates:
+        # 检查候选文本是否包含任一关键词
+        if any(kw in text for kw in keywords):
+            relevant.append(text)
+            if len(relevant) >= max_relevant:
+                break  # 相关候选已足够
+        else:
+            others.append(text)
+
+    # 相关候选在前，其他候选在后（兜底）
+    relevant.extend(others)
+    return relevant
+
+
 def enrich_narration_with_novel(
     data: dict[str, Any],
     novel_text: str,
-    target_ratio: float = 0.40,
+    target_ratio: float = 0.50,
 ) -> dict[str, Any]:
     result = copy.deepcopy(data)
     candidates = _extract_narration_candidates(novel_text)
+
+    # 收集全剧本已有段落文本，用于重复检测
+    existing_texts: list[str] = []
+    for sb in result.get("storyboards", []):
+        for sc in sb.get("scripts", []):
+            text = str(sc.get("text", "")).strip()
+            if text:
+                existing_texts.append(text)
 
     for sb in result.get("storyboards", []):
         scripts = sb.get("scripts", [])
         if not isinstance(scripts, list) or not scripts:
             continue
 
+        # 计算当前分镜需要补充的旁白数量
         narr = sum(1 for s in scripts if str(s.get("speaker", "")).strip() == NARRATION_SPEAKER)
         total = len(scripts)
         need = _required_insertions(total, narr, target_ratio)
         if need <= 0:
             continue
+
+        # 【Phase 2.4新增】根据分镜标题筛选主题相关的候选
+        sb_title = str(sb.get("title", "")).strip()
+        sb_candidates = _filter_candidates_by_theme(copy.deepcopy(candidates), sb_title)
 
         insert_positions = [i for i, s in enumerate(scripts) if str(s.get("speaker", "")).strip() != NARRATION_SPEAKER]
         if not insert_positions:
@@ -268,37 +431,72 @@ def enrich_narration_with_novel(
 
         inserted = 0
         pos_cursor = 0
-        while inserted < need:
-            text = candidates[0]
-            candidates.rotate(-1)
+        max_retries = len(sb_candidates)  # 防止无限循环
+        retries = 0
+
+        while inserted < need and retries < max_retries:
+            candidate_text = sb_candidates[0]
+            sb_candidates.rotate(-1)
+            retries += 1
+
+            # 前置重复检测：跳过与已有段落高度相似的候选
+            is_duplicate = False
+            for existing in existing_texts:
+                if _calculate_similarity(candidate_text, existing) >= 0.85:
+                    is_duplicate = True
+                    break
+
+            if is_duplicate:
+                continue  # 跳过重复候选，尝试下一个
+
+            # 插入旁白
             pos = insert_positions[pos_cursor % len(insert_positions)] + inserted
             scripts.insert(
                 pos,
                 {
                     "id": "",
                     "speaker": NARRATION_SPEAKER,
-                    "text": text,
+                    "text": candidate_text,
                     "character_image": None,
                     "effect": "typewriter",
                     "speed": DEFAULT_TYPEWRITER_SPEED,
                 },
             )
+            existing_texts.append(candidate_text)  # 记录已插入文本
             inserted += 1
             pos_cursor += 1
+            retries = 0  # 成功插入后重置重试计数
 
         if str(scripts[0].get("speaker", "")).strip() != NARRATION_SPEAKER:
-            scripts.insert(
-                0,
-                {
-                    "id": "",
-                    "speaker": NARRATION_SPEAKER,
-                    "text": candidates[0],
-                    "character_image": None,
-                    "effect": "typewriter",
-                    "speed": DEFAULT_TYPEWRITER_SPEED,
-                },
-            )
-            candidates.rotate(-1)
+            # 为分镜开头补充旁白（同样使用主题筛选）
+            first_narration = None
+            for _ in range(len(sb_candidates)):
+                candidate = sb_candidates[0]
+                sb_candidates.rotate(-1)
+
+                is_duplicate = False
+                for existing in existing_texts:
+                    if _calculate_similarity(candidate, existing) >= 0.85:
+                        is_duplicate = True
+                        break
+
+                if not is_duplicate:
+                    first_narration = candidate
+                    break
+
+            if first_narration:
+                scripts.insert(
+                    0,
+                    {
+                        "id": "",
+                        "speaker": NARRATION_SPEAKER,
+                        "text": first_narration,
+                        "character_image": None,
+                        "effect": "typewriter",
+                        "speed": DEFAULT_TYPEWRITER_SPEED,
+                    },
+                )
+                existing_texts.append(first_narration)
 
     return result
 
@@ -336,17 +534,48 @@ def normalize_and_repair_script(
 
         sb["scripts"] = repaired
 
-    _reindex_segment_ids(result)
+    _reindex_segment_ids(result, preserve_existing=True)
     rebuild_asset_manifest(result)
     return result
 
 
-def _reindex_segment_ids(data: dict[str, Any]) -> None:
-    sid = 1
+def _reindex_segment_ids(data: dict[str, Any], preserve_existing: bool = True) -> None:
+    """重新编号段落ID，可选保留已有ID
+
+    Args:
+        data: 剧本数据
+        preserve_existing: 是否保留已有ID（默认True）
+                          - True: 只为缺失ID的段落分配新ID，已有ID保持不变
+                          - False: 全部重新编号
+    """
+    if preserve_existing:
+        # 收集已存在的ID
+        existing_ids: set[int] = set()
+        for sb in data.get("storyboards", []):
+            for sc in sb.get("scripts", []):
+                sid_str = str(sc.get("id", "")).strip()
+                if sid_str and sid_str.startswith("s"):
+                    try:
+                        existing_ids.add(int(sid_str[1:]))
+                    except ValueError:
+                        pass  # 忽略无效ID
+
+        # 从最大ID+1开始分配新ID
+        next_id = max(existing_ids, default=0) + 1
+    else:
+        next_id = 1
+
+    # 只为缺失ID的段落分配新ID
     for sb in data.get("storyboards", []):
         for sc in sb.get("scripts", []):
-            sc["id"] = f"s{sid}"
-            sid += 1
+            current_id = str(sc.get("id", "")).strip()
+            if not current_id or current_id == "":
+                sc["id"] = f"s{next_id}"
+                next_id += 1
+            elif not preserve_existing:
+                # 强制重新编号模式
+                sc["id"] = f"s{next_id}"
+                next_id += 1
 
 
 def rebuild_asset_manifest(data: dict[str, Any]) -> None:
