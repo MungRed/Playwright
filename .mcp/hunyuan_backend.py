@@ -424,9 +424,14 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
     scene_type = _infer_scene_type(safe_filename, scene_type_arg)
     normalized_width, normalized_height = _normalize_resolution(width, height, api_action)
 
+    # 提取角色名（用于按角色读取风格锚点）
+    character_name = None
+    if scene_type == "character":
+        character_name = _extract_character_name_from_filename(safe_filename)
+
     style_contract = _load_style_contract(style_contract_path)
-    effective_style_anchor = _resolve_style_anchor(style_contract, scene_type, style_anchor_arg)
-    effective_negative_anchor = _resolve_negative_anchor(style_contract, scene_type, negative_anchor_arg)
+    effective_style_anchor = _resolve_style_anchor(style_contract, scene_type, style_anchor_arg, character_name)
+    effective_negative_anchor = _resolve_negative_anchor(style_contract, scene_type, negative_anchor_arg, character_name)
 
     if enforce_style and not effective_style_anchor:
         effective_style_anchor = DEFAULT_BG_STYLE_ANCHOR if scene_type == "background" else DEFAULT_CHAR_STYLE_ANCHOR
@@ -456,7 +461,8 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
         )
         out_path.write_bytes(img_bytes)
 
-        _update_style_contract(style_contract, scene_type, effective_style_anchor, effective_negative_anchor)
+        # 更新风格合同（character_name已在前面提取）
+        _update_style_contract(style_contract, scene_type, effective_style_anchor, effective_negative_anchor, character_name)
         _save_style_contract(style_contract_path, style_contract)
 
         result = {
@@ -935,7 +941,20 @@ def _load_style_contract(path: Path) -> dict:
         return {}
 
 
-def _resolve_style_anchor(style_contract: dict, scene_type: str, style_anchor_arg: str) -> str:
+def _resolve_style_anchor(
+    style_contract: dict,
+    scene_type: str,
+    style_anchor_arg: str,
+    character_name: str | None = None,
+) -> str:
+    """解析风格锚点，支持按角色读取
+
+    优先级：
+    1. 显式传入的 style_anchor_arg
+    2. 按角色分类的 character_styles[character_name].style_anchor
+    3. 场景类型级别的 background_style_anchor / character_style_anchor
+    4. 全局 style_anchor
+    """
     if style_anchor_arg.strip():
         return style_anchor_arg.strip()
 
@@ -946,6 +965,15 @@ def _resolve_style_anchor(style_contract: dict, scene_type: str, style_anchor_ar
             or ""
         ).strip()
 
+    # 角色场景：优先按角色名读取
+    if character_name:
+        character_styles = style_contract.get("character_styles", {})
+        if isinstance(character_styles, dict) and character_name in character_styles:
+            char_anchor = character_styles[character_name].get("style_anchor", "")
+            if char_anchor:
+                return str(char_anchor).strip()
+
+    # 回退到通用角色风格
     return str(
         style_contract.get("character_style_anchor")
         or style_contract.get("style_anchor")
@@ -953,7 +981,20 @@ def _resolve_style_anchor(style_contract: dict, scene_type: str, style_anchor_ar
     ).strip()
 
 
-def _resolve_negative_anchor(style_contract: dict, scene_type: str, negative_anchor_arg: str) -> str:
+def _resolve_negative_anchor(
+    style_contract: dict,
+    scene_type: str,
+    negative_anchor_arg: str,
+    character_name: str | None = None,
+) -> str:
+    """解析负向锚点，支持按角色读取
+
+    优先级：
+    1. 显式传入的 negative_anchor_arg
+    2. 按角色分类的 character_styles[character_name].negative_anchor
+    3. 场景类型级别的 background_negative_anchor / character_negative_anchor
+    4. 全局 negative_anchor
+    """
     if negative_anchor_arg.strip():
         return negative_anchor_arg.strip()
 
@@ -964,6 +1005,15 @@ def _resolve_negative_anchor(style_contract: dict, scene_type: str, negative_anc
             or ""
         ).strip()
 
+    # 角色场景：优先按角色名读取
+    if character_name:
+        character_styles = style_contract.get("character_styles", {})
+        if isinstance(character_styles, dict) and character_name in character_styles:
+            char_negative = character_styles[character_name].get("negative_anchor", "")
+            if char_negative:
+                return str(char_negative).strip()
+
+    # 回退到通用角色风格
     return str(
         style_contract.get("character_negative_anchor")
         or style_contract.get("negative_anchor")
@@ -971,16 +1021,59 @@ def _resolve_negative_anchor(style_contract: dict, scene_type: str, negative_anc
     ).strip()
 
 
+def _extract_character_name_from_filename(filename: str) -> str | None:
+    """从文件名中提取角色名
+
+    支持的命名格式：
+    - char_{角色名}_{状态}.png（立绘）
+    - char_ref_{角色名}_{视角}.png（三视图）
+
+    Returns:
+        角色名，若无法提取则返回None
+    """
+    import re
+
+    # 去掉路径，只保留文件名
+    filename = Path(filename).name
+
+    # 匹配 char_角色名_xxx.png 或 char_ref_角色名_xxx.png
+    match = re.match(r"char(?:_ref)?_([^_]+)_", filename)
+    if match:
+        return match.group(1)
+
+    return None
+
+
 def _update_style_contract(
     style_contract: dict,
     scene_type: str,
     style_anchor: str,
     negative_anchor: str,
+    character_name: str | None = None,
 ) -> None:
+    """更新风格合同，支持按角色分类
+
+    Args:
+        style_contract: 风格合同字典
+        scene_type: 场景类型（background/character）
+        style_anchor: 风格锚点
+        negative_anchor: 负向锚点
+        character_name: 角色名（仅当scene_type=character时有效）
+    """
     if scene_type == "background":
         style_contract["background_style_anchor"] = style_anchor
         style_contract["background_negative_anchor"] = negative_anchor
+    elif scene_type == "character" and character_name:
+        # 按角色分类存储
+        if "character_styles" not in style_contract:
+            style_contract["character_styles"] = {}
+        if character_name not in style_contract["character_styles"]:
+            style_contract["character_styles"][character_name] = {}
+
+        style_contract["character_styles"][character_name]["style_anchor"] = style_anchor
+        style_contract["character_styles"][character_name]["negative_anchor"] = negative_anchor
     else:
+        # 回退到旧格式（全局character风格）
         style_contract["character_style_anchor"] = style_anchor
         style_contract["character_negative_anchor"] = negative_anchor
 
@@ -1093,6 +1186,10 @@ async def _hunyuan(
         # 设置提示词优化与水印参数
         req.Revise = 1 if revise_prompt else 0  # SDK中实际属性名是 Revise
         req.LogoAdd = logo_add
+
+        # 【关键修复】设置 NegativePrompt（图生图路径之前缺失此设置）
+        if negative_prompt:
+            req.NegativePrompt = negative_prompt
 
         submit_resp = client.SubmitTextToImageJob(req)
         job_id = str(getattr(submit_resp, "JobId", ""))
