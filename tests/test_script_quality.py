@@ -49,6 +49,44 @@ class ScriptQualityTests(unittest.TestCase):
         after = analyze_script_quality(enriched, min_narration_ratio=0.4)
         self.assertLess(before.stats.narration_ratio, after.stats.narration_ratio)
 
+    def test_repair_removes_stage_prefix_and_chapter_heading(self):
+        data = {
+            "storyboards": [
+                {
+                    "id": "sb1",
+                    "background": {"image": "assets/bg.png"},
+                    "scripts": [
+                        {
+                            "id": "s1",
+                            "speaker": "角色A",
+                            "text": "（低声）这次我会把报道补完。",
+                            "character_image": "assets/char_a.png",
+                        },
+                        {
+                            "id": "s2",
+                            "speaker": "旁白",
+                            "text": "### 第一章 雨夜回访",
+                            "character_image": None,
+                        },
+                        {
+                            "id": "s3",
+                            "speaker": "旁白",
+                            "text": "雨水敲在栈桥上。",
+                            "character_image": None,
+                        },
+                    ],
+                }
+            ]
+        }
+
+        repaired = normalize_and_repair_script(data)
+        scripts = repaired["storyboards"][0]["scripts"]
+        texts = [s["text"] for s in scripts]
+
+        self.assertIn("这次我会把报道补完。", texts)
+        self.assertTrue(all(not t.startswith("（") for t in texts))
+        self.assertTrue(all("第一章" not in t for t in texts))
+
 
 if __name__ == "__main__":
     unittest.main()

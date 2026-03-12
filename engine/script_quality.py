@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import json
 import math
+import re
 from collections import deque
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -10,6 +11,9 @@ from typing import Any
 
 NARRATION_SPEAKER = "旁白"
 DEFAULT_TYPEWRITER_SPEED = 55
+
+CHAPTER_HEADING_LINE_RE = re.compile(r"^\s*(?:#{1,6}\s*)?第[一二三四五六七八九十百0-9]+章\s+.+$", re.IGNORECASE)
+LEADING_STAGE_DIR_RE = re.compile(r"^\s*(?:（[^）]{1,12}）|\([^)]{1,12}\))\s*")
 
 
 @dataclass
@@ -102,6 +106,21 @@ def _iter_scripts(data: dict[str, Any]):
             yield sb_index, sc_index, sb, sc
 
 
+def _strip_leading_chapter_heading(text: str) -> str:
+    lines = text.splitlines()
+    while lines and CHAPTER_HEADING_LINE_RE.match(lines[0].strip()):
+        lines.pop(0)
+    return "\n".join(lines).strip()
+
+
+def _normalize_segment_text(speaker: str, text: str) -> str:
+    out = (text or "").strip()
+    out = _strip_leading_chapter_heading(out)
+    if speaker and speaker != NARRATION_SPEAKER:
+        out = LEADING_STAGE_DIR_RE.sub("", out, count=1).strip()
+    return out
+
+
 def analyze_script_quality(data: dict[str, Any], min_narration_ratio: float = 0.40) -> QualityReport:
     issues: list[QualityIssue] = []
 
@@ -157,6 +176,12 @@ def analyze_script_quality(data: dict[str, Any], min_narration_ratio: float = 0.
 
             if len(text) > 80:
                 issues.append(QualityIssue("warn", "TEXT_TOO_LONG", f"text 长度 {len(text)} > 80", sc_loc))
+
+            if CHAPTER_HEADING_LINE_RE.match(text.strip()):
+                issues.append(QualityIssue("warn", "TEXT_CHAPTER_HEADING", "text 疑似章节标题泄漏", sc_loc))
+
+            if speaker and speaker != NARRATION_SPEAKER and LEADING_STAGE_DIR_RE.match(text):
+                issues.append(QualityIssue("warn", "DIALOGUE_STAGE_PREFIX", "对话包含前置括号舞台提示", sc_loc))
 
             if speaker == NARRATION_SPEAKER:
                 sb_narr += 1
@@ -292,7 +317,9 @@ def normalize_and_repair_script(
         for sc in scripts:
             speaker = str(sc.get("speaker", "")).strip()
             speaker = aliases.get(speaker, speaker)
-            text = str(sc.get("text", "")).strip()
+            text = _normalize_segment_text(speaker, str(sc.get("text", "")))
+            if not text:
+                continue
             parts = _chunk_text(text, 80)
             for part in parts:
                 item = {

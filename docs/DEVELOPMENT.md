@@ -302,6 +302,7 @@ python scripts/bootstrap_env.py
 ## 9. 最近变更记录
 
 ### 9.1 最近 12 条
+- 2026-03-11：模块2文本清洗规则增强：`engine/script_quality.py` 新增“去对话前置括号提示（如 `（低声）`）+ 去章节标题泄漏（如 `### 第一章 ...`）”；`normalize_and_repair_script` 在落盘前统一清洗，防止脏文本进入阅读器。
 - 2026-03-11：阅读器正文渲染改为统一默认文字颜色（不再按旁白/角色或 shake 切换颜色）；当单次分镜文本超出可视高度时，支持滚轮滚动并显示正文滚动条。
 - 2026-03-11：回归样本 `渡口回灯` 暴露分镜规划器跨题材错配，`engine/storyboard_planner.py` 已从旧关键词硬编码改为“章节标题优先 + 场景语义标签”生成，默认输出通用背景路径 `assets/scene_<idx>_<tags>.png`。
 - 2026-03-11：修复 `engine/script_refiner.py` 提前停止缺陷：原逻辑在仍存在 `SB_NARRATION_RATIO_LOW` 时可能提前判定通过；现要求“无 error 且无旁白占比告警（全局+分镜）”后才停止，并新增对应单测。

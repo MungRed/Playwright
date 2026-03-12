@@ -19,3 +19,5 @@ scripts/*/
 
 # 保留 scripts 根目录下工具脚本
 !scripts/*.py
+.claude/skills/lightning-show
+.claude/skills/proposal-review
