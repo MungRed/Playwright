@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python.exe tools/check_script_quality.py scripts/渡口回灯/script.json --min-narration-ratio 0.50)",
+      "Bash(.venv/Scripts/python.exe tools/auto_refine_script.py scripts/渡口回灯/script.json --max-rounds 3)",
+      "Bash(.venv/Scripts/python.exe tools/auto_refine_script.py scripts/渡口回灯/script.json scripts/渡口回灯/drafts/novel_full.txt --max-rounds 3 --min-narration-ratio 0.50)",
+      "Bash(.venv/Scripts/python.exe tools/check_script_quality.py scripts/渡口回灯/script.refined.json --min-narration-ratio 0.50)",
+      "Bash(ls -la d:/AIProject/Playwright/engine/*.py)",
+      "Bash(python tools/check_script_quality.py scripts/phase2_test/script.json --min-narration-ratio 0.50)",
+      "Bash(python -c \":*)"
+    ]
+  }
+}
