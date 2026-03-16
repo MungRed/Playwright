@@ -1144,11 +1144,12 @@ async def _hunyuan(
         from tencentcloud.common import credential
         from tencentcloud.common.profile.client_profile import ClientProfile
         from tencentcloud.common.profile.http_profile import HttpProfile
-        from tencentcloud.aiart.v20221229 import aiart_client, models
+        from tencentcloud.aiart.v20221229 import aiart_client, models as aiart_models
+        from tencentcloud.hunyuan.v20230901 import hunyuan_client, models as hunyuan_models
     except Exception as exc:
         raise RuntimeError("缺少腾讯云 SDK 依赖，请安装 tencentcloud-sdk-python") from exc
 
-    def _build_client():
+    def _build_aiart_client():
         cred = credential.Credential(TENCENT_SECRET_ID, TENCENT_SECRET_KEY, TENCENT_TOKEN or None)
 
         http_profile = HttpProfile()
@@ -1159,9 +1160,20 @@ async def _hunyuan(
 
         return aiart_client.AiartClient(cred, HUNYUAN_REGION, client_profile)
 
+    def _build_hunyuan_client():
+        cred = credential.Credential(TENCENT_SECRET_ID, TENCENT_SECRET_KEY, TENCENT_TOKEN or None)
+
+        http_profile = HttpProfile()
+        http_profile.endpoint = "hunyuan.tencentcloudapi.com"
+
+        client_profile = ClientProfile()
+        client_profile.httpProfile = http_profile
+
+        return hunyuan_client.HunyuanClient(cred, HUNYUAN_REGION, client_profile)
+
     def _invoke_lite() -> tuple[str, str]:
-        client = _build_client()
-        req = models.TextToImageLiteRequest()
+        client = _build_aiart_client()
+        req = aiart_models.TextToImageLiteRequest()
         req.Prompt = prompt
         if negative_prompt:
             req.NegativePrompt = negative_prompt
@@ -1175,13 +1187,22 @@ async def _hunyuan(
         return str(result_image_obj), HUNYUAN_RSP_IMG_TYPE.lower()
 
     def _invoke_submit_job() -> tuple[str, str]:
-        client = _build_client()
+        client = _build_hunyuan_client()
 
-        req = models.SubmitTextToImageJobRequest()
+        req = hunyuan_models.SubmitHunyuanImageJobRequest()
         req.Prompt = prompt
-        req.Resolution = f"{width}:{height}"
+        # SubmitHunyuanImageJob 使用固定的分辨率字符串格式
+        # 根据宽高比选择最接近的预设分辨率
+        if height > width:
+            # 竖版：选择 768:1024
+            req.Resolution = "768:1024"
+        else:
+            # 横版：选择 1024:768
+            req.Resolution = "1024:768"
         if reference_images:
-            req.Images = reference_images[:3]
+            img_obj = hunyuan_models.Image()
+            img_obj.ImageUrl = reference_images[0]
+            req.ContentImage = img_obj
 
         # 设置提示词优化与水印参数
         req.Revise = 1 if revise_prompt else 0  # SDK中实际属性名是 Revise
@@ -1191,22 +1212,22 @@ async def _hunyuan(
         if negative_prompt:
             req.NegativePrompt = negative_prompt
 
-        submit_resp = client.SubmitTextToImageJob(req)
+        submit_resp = client.SubmitHunyuanImageJob(req)
         job_id = str(getattr(submit_resp, "JobId", ""))
         if not job_id:
-            raise RuntimeError("SubmitTextToImageJob 未返回 JobId")
+            raise RuntimeError("SubmitHunyuanImageJob 未返回 JobId")
 
         deadline = time.monotonic() + max(30, HUNYUAN_JOB_TIMEOUT_SEC)
         while time.monotonic() < deadline:
-            query_req = models.QueryTextToImageJobRequest()
+            query_req = hunyuan_models.QueryHunyuanImageJobRequest()
             query_req.JobId = job_id
-            query_resp = client.QueryTextToImageJob(query_req)
+            query_resp = client.QueryHunyuanImageJob(query_req)
 
             status = str(getattr(query_resp, "JobStatusCode", ""))
             if status == "5":
                 images = getattr(query_resp, "ResultImage", None) or []
                 if not images:
-                    raise RuntimeError("QueryTextToImageJob 返回成功但无 ResultImage")
+                    raise RuntimeError("QueryHunyuanImageJob 返回成功但无 ResultImage")
                 return str(images[0]), "url"
 
             if status == "4":
